@@ -135,11 +135,12 @@ with st.sidebar:
         index=0
     )
 
-    year = st.slider(
-    "Select Year",
-    min_value=2023,
-    max_value=2025,
-    value=2025
+    selected_year = st.slider(
+        'Year',
+        min_value=2022,
+        max_value=2025,
+        value=2025,
+        step=1
     )
 
     fire_days = st.selectbox(
