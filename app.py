@@ -97,7 +97,6 @@ st.markdown("""
 
 # ── Region metadata ───────────────────────────────────────────────────────────
 # capacity_mw = installed solar capacity per region (CEA, March 2025 estimates)
-# Formula used: potential_MWh/day = GHI × capacity_mw  (GHI already in kWh/m²/day)
 REGIONS = {
     'North India (NR)': {'code': 'NR',  'state': 'Rajasthan',  'lat': 26.91, 'lon': 74.22, 'capacity_mw': 35000},
     'West India (WR)':  {'code': 'WR',  'state': 'Gujarat',    'lat': 23.02, 'lon': 72.57, 'capacity_mw': 22000},
@@ -105,6 +104,21 @@ REGIONS = {
     'East India (ER)':  {'code': 'ER',  'state': 'Odisha',     'lat': 20.95, 'lon': 85.09, 'capacity_mw': 8000},
     'NE India (NER)':   {'code': 'NER', 'state': 'Assam',      'lat': 26.20, 'lon': 92.93, 'capacity_mw': 1000},
 }
+
+# ── Helper: resolve data path (works locally AND on Streamlit Cloud) ──────────
+def data_path(filename):
+    """
+    Returns absolute path to a file inside the data/ folder.
+    Works whether app.py is at repo root or inside src/gui/.
+    """
+    base = os.path.dirname(os.path.abspath(__file__))
+    # If app.py is at repo root, data/ is right next to it
+    candidate = os.path.join(base, 'data', filename)
+    if os.path.exists(candidate):
+        return candidate
+    # Fallback: walk up two levels (for src/gui/dashboard.py layout)
+    candidate2 = os.path.join(base, '..', '..', 'data', filename)
+    return os.path.abspath(candidate2)
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -123,9 +137,9 @@ with st.sidebar:
     NASA POWER — solar potential (GHI)<br>
     NASA FIRMS — fire hotspots<br><br>
     <b style='color:#8b8fa8;'>Formula</b><br><br>
-    Potential = GHI × Capacity (MWh/day)<br>
+    Potential = GHI × Capacity × 0.15 (MWh/day)<br>
     Curtailed = Potential − Actual (min 0)<br>
-    CO₂ = Wasted kWh × 0.727 kg
+    CO₂ = Wasted kWh × 0.727 kg/kWh
     </div>""", unsafe_allow_html=True)
 
 # ── Header ────────────────────────────────────────────────────────────────────
@@ -153,48 +167,59 @@ state_name  = region_info['state']
 
 with st.spinner(f'Fetching data for {selected_region}...'):
 
-    # ── NASA POWER — monthly GHI ──────────────────────────────────────────────
+    # ── 1. NASA POWER — monthly GHI ───────────────────────────────────────────
     try:
         ghi_data = get_solar_potential(lat, lon, selected_year)
         avg_ghi  = round(np.mean(list(ghi_data.values())), 3) if ghi_data else 5.0
     except Exception as e:
-        st.warning(f'NASA POWER error: {e}')
+        st.warning(f'NASA POWER error: {e} — using fallback GHI = 5.0')
         ghi_data, avg_ghi = {}, 5.0
 
-    # ── CEA data — actual generation ──────────────────────────────────────────
+    # ── 2. CEA data — actual daily solar generation ───────────────────────────
     try:
-        cea_df    = load_cea_data('data/india_generation_clean.csv')
+        csv_path  = data_path('india_generation_clean.csv')
+        cea_df    = load_cea_data(csv_path)
         region_df = cea_df[
             (cea_df['region'] == region_code) &
             (cea_df['date'].dt.year == selected_year)
         ]
-        # solar_mwh is already MWh per day — just take the mean across days
-        actual_mwh_day = region_df['solar_mwh'].mean() if len(region_df) > 0 else 0.0
+        if len(region_df) > 0:
+            actual_mwh_day = float(region_df['solar_mwh'].mean())
+        else:
+            actual_mwh_day = 0.0
+            st.warning(f'No CEA rows found for {region_code} in {selected_year}. '
+                       'Curtailment will be calculated from potential only.')
     except Exception as e:
-        st.warning(f'CEA data error: {e}')
+        st.error(f'CEA data error: {e}')
         actual_mwh_day = 0.0
 
-    # ── NASA FIRMS — fire hotspots ────────────────────────────────────────────
+    # ── 3. NASA FIRMS — fire hotspots ─────────────────────────────────────────
     try:
         fires_df = get_fire_hotspots(days=fire_days)
     except Exception as e:
         st.warning(f'FIRMS error: {e}')
         fires_df = pd.DataFrame(columns=['latitude', 'longitude', 'brightness', 'confidence'])
 
-    # ── Calculations (all in MWh/day — no unit conversion errors) ────────────
-    potential_mwh_day, wasted_mwh_day = calculate_curtailment(avg_ghi, capacity_mw, actual_mwh_day)
-    losses      = calculate_losses(wasted_mwh_day)                  # kWh, Rs, kg CO2
+    # ── 4. Calculations ───────────────────────────────────────────────────────
+    # calculate_curtailment returns a TUPLE: (potential_mwh_day, wasted_mwh_day)
+    potential_mwh_day, wasted_mwh_day = calculate_curtailment(
+        avg_ghi, capacity_mw, actual_mwh_day
+    )
+    # calculate_losses takes wasted_mwh_day (float) → returns dict
+    losses = calculate_losses(wasted_mwh_day)
+    # calculate_curtailment_percent(wasted, potential) — note argument order
     curtail_pct = calculate_curtailment_percent(wasted_mwh_day, potential_mwh_day)
 
-    # ── ML classifier ─────────────────────────────────────────────────────────
+    # ── 5. ML Risk classifier ─────────────────────────────────────────────────
     try:
-        full_df         = load_cea_data('data/india_generation_clean.csv')
-        features        = prepare_features(full_df)
+        csv_path2        = data_path('india_generation_clean.csv')
+        full_df          = load_cea_data(csv_path2)
+        features         = prepare_features(full_df)
         clf, scaler, labelled = train_model(features)
-        row             = labelled[labelled['region'] == region_code]
-        solar_share     = float(row['solar_share_pct'].values[0]) if len(row) > 0 else 20.0
-        coal_share      = float(row['coal_share_pct'].values[0])  if len(row) > 0 else 50.0
-        risk_label      = predict_risk(clf, scaler, curtail_pct, solar_share, coal_share)
+        row              = labelled[labelled['region'] == region_code]
+        solar_share      = float(row['solar_share_pct'].values[0]) if len(row) > 0 else 20.0
+        coal_share       = float(row['coal_share_pct'].values[0])  if len(row) > 0 else 50.0
+        risk_label       = predict_risk(clf, scaler, curtail_pct, solar_share, coal_share)
     except Exception as e:
         st.warning(f'ML error: {e}')
         risk_label = 'Medium'
