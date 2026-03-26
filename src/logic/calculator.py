@@ -1,3 +1,4 @@
+# calculator.py — SolarWaste Monitor
 # Source: CEA CO2 Baseline Database Version 21.0, December 2025
 # Official India grid emission factor
 CO2_PER_KWH = 0.727  # kg of CO2 released per kWh of coal electricity
@@ -5,70 +6,80 @@ CO2_PER_KWH = 0.727  # kg of CO2 released per kWh of coal electricity
 # Official curtailment compensation rate (Rs per kWh paid to solar plants)
 COMPENSATION_RATE = 3.0  # Rs per kWh
 
-# Average solar panel efficiency (industry standard for utility-scale plants)
-PANEL_EFFICIENCY = 0.15  # 15%
+# NOTE: The correct formula for solar potential is:
+#   potential_MWh_per_day = GHI (kWh/m²/day) × capacity_MW
+#
+# Explanation:
+#   GHI is measured in kWh/m²/day — this already represents the usable
+#   solar energy per unit area per day (it is NOT raw irradiance that needs
+#   efficiency applied). When multiplied by capacity_MW, it gives the
+#   expected output in MWh/day directly.
+#
+#   The old formula (GHI × capacity × 0.15) was WRONG because it applied
+#   a panel efficiency factor on top of GHI, which double-discounts the
+#   energy. GHI from NASA POWER is already the surface-level energy — the
+#   capacity rating of the panels accounts for their own efficiency.
 
 
-def calculate_curtailment(potential_ghi, capacity_mw, actual_mw):
+def calculate_curtailment(potential_ghi, capacity_mw, actual_mwh_day):
     """
-    Calculates how much solar energy was wasted (curtailed) in a state.
+    Calculates how much solar energy was wasted (curtailed) in a region per day.
 
     Args:
-        potential_ghi  : float — sunlight value from NASA POWER (kWh/m2/day)
-        capacity_mw    : float — installed solar capacity in the state (MW)
-        actual_mw      : float — what CEA recorded as actually generated (MW)
+        potential_ghi   : float — GHI from NASA POWER (kWh/m²/day)
+        capacity_mw     : float — installed solar capacity in the region (MW)
+        actual_mwh_day  : float — actual daily solar generation from CEA (MWh/day)
 
     Returns:
-        wasted_mw      : float — difference between potential and actual (MW)
+        wasted_mwh_day  : float — MWh wasted per day (minimum 0)
 
     Formula:
-        potential_mw = GHI x capacity_mw x panel_efficiency
-        wasted_mw    = potential_mw - actual_mw  (minimum 0, never negative)
+        potential_mwh = GHI × capacity_mw        ← correct (no efficiency factor)
+        wasted_mwh    = potential_mwh - actual_mwh (minimum 0)
     """
-    potential_mw = potential_ghi * capacity_mw * PANEL_EFFICIENCY
-    wasted_mw = max(0, potential_mw - actual_mw)
-    return round(wasted_mw, 2)
+    potential_mwh_day = potential_ghi * capacity_mw
+    wasted_mwh_day = max(0.0, potential_mwh_day - actual_mwh_day)
+    return round(wasted_mwh_day, 2)
 
 
-def calculate_losses(wasted_mw, hours=24):
+def calculate_losses(wasted_mwh_day):
     """
-    Converts wasted MW into kWh, money lost (Rs), and CO2 released (kg).
+    Converts wasted MWh/day into kWh, money lost (Rs), and CO2 released (kg).
 
     Args:
-        wasted_mw  : float — curtailed energy in MW (from calculate_curtailment)
-        hours      : int   — number of hours in the period (default 24 = one day)
+        wasted_mwh_day : float — curtailed energy in MWh per day
 
     Returns:
         dict with keys:
-            wasted_kwh  — energy wasted in kilowatt-hours
-            money_rs    — money lost in Indian Rupees
-            co2_kg      — CO2 released in kilograms
+            wasted_kwh  — energy wasted in kilowatt-hours per day
+            money_rs    — money lost in Indian Rupees per day
+            co2_kg      — CO2 released in kilograms per day
     """
-    wasted_kwh = wasted_mw * 1000 * hours  # MW → kW (×1000) × hours = kWh
+    wasted_kwh = wasted_mwh_day * 1000          # MWh → kWh
 
     money_lost_rs = wasted_kwh * COMPENSATION_RATE
-    co2_lost_kg = wasted_kwh * CO2_PER_KWH
+    co2_lost_kg   = wasted_kwh * CO2_PER_KWH
 
     return {
         'wasted_kwh': round(wasted_kwh, 2),
         'money_rs':   round(money_lost_rs, 2),
-        'co2_kg':     round(co2_lost_kg, 2)
+        'co2_kg':     round(co2_lost_kg, 2),
     }
 
 
-def calculate_curtailment_percent(potential_mw, actual_mw):
+def calculate_curtailment_percent(potential_mwh_day, actual_mwh_day):
     """
     Calculates curtailment as a percentage of potential generation.
     Used by the ML classifier as the main input feature.
 
     Args:
-        potential_mw : float — what could have been generated
-        actual_mw    : float — what was actually generated
+        potential_mwh_day : float — what could have been generated (MWh/day)
+        actual_mwh_day    : float — what was actually generated (MWh/day)
 
     Returns:
         curtailment_pct : float — percentage of potential energy that was wasted
     """
-    if potential_mw == 0:
+    if potential_mwh_day <= 0:
         return 0.0
-    curtailment_pct = ((potential_mw - actual_mw) / potential_mw) * 100
-    return round(max(0, curtailment_pct), 2)
+    curtailment_pct = ((potential_mwh_day - actual_mwh_day) / potential_mwh_day) * 100
+    return round(max(0.0, curtailment_pct), 2)
