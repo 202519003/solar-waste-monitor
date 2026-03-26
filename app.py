@@ -182,10 +182,9 @@ with st.spinner(f'Fetching data for {selected_region}...'):
         fires_df = pd.DataFrame(columns=['latitude', 'longitude', 'brightness', 'confidence'])
 
     # ── Calculations (all in MWh/day — no unit conversion errors) ────────────
-    potential_mwh_day = avg_ghi * capacity_mw                       # MWh/day
-    wasted_mwh_day    = calculate_curtailment(avg_ghi, capacity_mw, actual_mwh_day)
-    losses            = calculate_losses(wasted_mwh_day)            # kWh, Rs, kg CO2
-    curtail_pct       = calculate_curtailment_percent(potential_mwh_day, actual_mwh_day)
+    potential_mwh_day, wasted_mwh_day = calculate_curtailment(avg_ghi, capacity_mw, actual_mwh_day)
+    losses      = calculate_losses(wasted_mwh_day)                  # kWh, Rs, kg CO2
+    curtail_pct = calculate_curtailment_percent(wasted_mwh_day, potential_mwh_day)
 
     # ── ML classifier ─────────────────────────────────────────────────────────
     try:
