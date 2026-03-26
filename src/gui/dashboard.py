@@ -153,6 +153,7 @@ with st.sidebar:
     run_btn = st.button('Run Analysis', use_container_width=True, type='primary')
 
     st.markdown("---")
+    # FIX 1: Updated formula label in sidebar to show the correct formula
     st.markdown("""
     <div style='font-size:12px; color:#555870;'>
     <strong style='color:#8b8fa8;'>Data sources</strong><br><br>
@@ -160,7 +161,8 @@ with st.sidebar:
     NASA POWER — solar potential (GHI)<br>
     NASA FIRMS — fire hotspots<br><br>
     <strong style='color:#8b8fa8;'>Formula</strong><br><br>
-    Curtailed = GHI × Capacity × 0.15 − Actual<br>
+    Potential = GHI × Capacity (MWh/day)<br>
+    Curtailed = Potential − Actual (min 0)<br>
     CO₂ = Wasted kWh × 0.727 kg
     </div>
     """, unsafe_allow_html=True)
@@ -195,6 +197,7 @@ with st.spinner(f'Fetching data for {selected_region}...'):
     except Exception as e:
         st.warning(f'NASA POWER API error: {e}. Using fallback GHI = 5.0')
         avg_ghi = 5.0
+        ghi_data = {}
 
     # 2. CEA data — actual generation
     try:
@@ -204,10 +207,10 @@ with st.spinner(f'Fetching data for {selected_region}...'):
             (cea_df['date'].dt.year == selected_year)
         ]
         actual_mwh_daily = region_df['solar_mwh'].mean() if len(region_df) > 0 else 0
-        actual_mw        = actual_mwh_daily / 24  # MWh/day → average MW
+        # NOTE: actual_mwh_daily is already MWh/day — no need to divide by 24
     except Exception as e:
         st.warning(f'CEA data error: {e}. Using fallback actual = 0')
-        actual_mw = 0
+        actual_mwh_daily = 0
 
     # 3. NASA FIRMS — fire hotspots
     try:
@@ -217,9 +220,12 @@ with st.spinner(f'Fetching data for {selected_region}...'):
         fires_df = pd.DataFrame(columns=['latitude', 'longitude', 'brightness', 'confidence'])
 
     # 4. Calculations
-    wasted_mw      = calculate_curtailment(avg_ghi, capacity_mw, actual_mw)
-    losses         = calculate_losses(wasted_mw, hours=24)
-    curtail_pct    = calculate_curtailment_percent(avg_ghi * capacity_mw * 0.15, actual_mw)
+    # FIX 2: Pass actual_mwh_daily (MWh/day) directly — not actual_mw
+    # FIX 3: calculate_losses() takes only wasted_mwh — no hours= argument
+    # FIX 4: curtail_pct uses correct formula without × 0.15 efficiency factor
+    wasted_mwh  = calculate_curtailment(avg_ghi, capacity_mw, actual_mwh_daily)
+    losses      = calculate_losses(wasted_mwh)
+    curtail_pct = calculate_curtailment_percent(avg_ghi * capacity_mw, actual_mwh_daily)
 
     # 5. ML Risk classification
     try:
@@ -247,11 +253,11 @@ col1, col2, col3, col4, col5 = st.columns(5)
 with col1:
     st.metric('Avg GHI', f'{avg_ghi} kWh/m²/d', help='NASA satellite solar potential')
 with col2:
-    st.metric('Wasted Energy', f'{losses["wasted_kwh"]:,.0f} kWh', help='Energy curtailed per day')
+    st.metric('Wasted Energy', f'{losses["wasted_kwh"]:,.0f} kWh/day', help='Energy curtailed per day')
 with col3:
-    st.metric('Money Lost', f'₹{losses["money_rs"]:,.0f}', help='At ₹3/kWh compensation rate')
+    st.metric('Money Lost', f'₹{losses["money_rs"]:,.0f}/day', help='At ₹3/kWh compensation rate')
 with col4:
-    st.metric('CO₂ Released', f'{losses["co2_kg"]:,.0f} kg', help='At 0.727 kg CO₂ per kWh (CEA)')
+    st.metric('CO₂ Released', f'{losses["co2_kg"]:,.0f} kg/day', help='At 0.727 kg CO₂ per kWh (CEA)')
 with col5:
     st.metric('Curtailment', f'{curtail_pct:.1f}%', help='% of potential solar that was wasted')
 
@@ -370,15 +376,15 @@ if ghi_data:
 st.markdown('<div class="section-header">Region Summary</div>', unsafe_allow_html=True)
 
 summary_data = {
-    'Region':          [selected_region],
+    'Region':               [selected_region],
     'Representative State': [state_name],
-    'Year':            [selected_year],
-    'Avg GHI (kWh/m²/d)': [avg_ghi],
-    'Wasted (kWh/day)':    [f'{losses["wasted_kwh"]:,.0f}'],
-    'Money Lost (₹/day)':  [f'{losses["money_rs"]:,.0f}'],
-    'CO₂ (kg/day)':        [f'{losses["co2_kg"]:,.0f}'],
-    'Curtailment %':       [f'{curtail_pct:.1f}%'],
-    'Risk':                [risk_label],
+    'Year':                 [selected_year],
+    'Avg GHI (kWh/m²/d)':  [avg_ghi],
+    'Wasted (kWh/day)':     [f'{losses["wasted_kwh"]:,.0f}'],
+    'Money Lost (₹/day)':   [f'{losses["money_rs"]:,.0f}'],
+    'CO₂ (kg/day)':         [f'{losses["co2_kg"]:,.0f}'],
+    'Curtailment %':        [f'{curtail_pct:.1f}%'],
+    'Risk':                 [risk_label],
 }
 st.dataframe(pd.DataFrame(summary_data), use_container_width=True, hide_index=True)
 
