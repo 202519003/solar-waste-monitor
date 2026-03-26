@@ -11,7 +11,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 
-from src.logic.fetcher import get_solar_potential, get_fire_hotspots, load_cea_data
+from src.logic.fetcher    import get_solar_potential, get_fire_hotspots, load_cea_data
 from src.logic.calculator import calculate_curtailment, calculate_losses, calculate_curtailment_percent
 from src.logic.classifier import prepare_features, train_model, predict_risk, get_risk_color
 
@@ -20,7 +20,7 @@ st.set_page_config(
     page_title='SolarWaste Monitor',
     page_icon='☀️',
     layout='wide',
-    initial_sidebar_state='expanded'
+    initial_sidebar_state='expanded',
 )
 
 # ── Custom CSS ────────────────────────────────────────────────────────────────
@@ -96,12 +96,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Region metadata ───────────────────────────────────────────────────────────
+# capacity_mw = installed solar capacity per region (CEA, March 2025 estimates)
+# Formula used: potential_MWh/day = GHI × capacity_mw  (GHI already in kWh/m²/day)
 REGIONS = {
-    'North India (NR)': {'code': 'NR',  'state': 'Rajasthan',  'lat': 26.91, 'lon': 74.22, 'capacity_mw': 18000},
-    'West India (WR)':  {'code': 'WR',  'state': 'Gujarat',    'lat': 23.02, 'lon': 72.57, 'capacity_mw': 12000},
-    'South India (SR)': {'code': 'SR',  'state': 'Tamil Nadu', 'lat': 11.12, 'lon': 78.66, 'capacity_mw': 16000},
-    'East India (ER)':  {'code': 'ER',  'state': 'Odisha',     'lat': 20.95, 'lon': 85.09, 'capacity_mw': 4000},
-    'NE India (NER)':   {'code': 'NER', 'state': 'Assam',      'lat': 26.20, 'lon': 92.93, 'capacity_mw': 500},
+    'North India (NR)': {'code': 'NR',  'state': 'Rajasthan',  'lat': 26.91, 'lon': 74.22, 'capacity_mw': 35000},
+    'West India (WR)':  {'code': 'WR',  'state': 'Gujarat',    'lat': 23.02, 'lon': 72.57, 'capacity_mw': 22000},
+    'South India (SR)': {'code': 'SR',  'state': 'Tamil Nadu', 'lat': 11.12, 'lon': 78.66, 'capacity_mw': 32000},
+    'East India (ER)':  {'code': 'ER',  'state': 'Odisha',     'lat': 20.95, 'lon': 85.09, 'capacity_mw': 8000},
+    'NE India (NER)':   {'code': 'NER', 'state': 'Assam',      'lat': 26.20, 'lon': 92.93, 'capacity_mw': 1000},
 }
 
 # ── Sidebar ───────────────────────────────────────────────────────────────────
@@ -121,7 +123,8 @@ with st.sidebar:
     NASA POWER — solar potential (GHI)<br>
     NASA FIRMS — fire hotspots<br><br>
     <b style='color:#8b8fa8;'>Formula</b><br><br>
-    Curtailed = GHI × Capacity × 0.15 − Actual<br>
+    Potential = GHI × Capacity (MWh/day)<br>
+    Curtailed = Potential − Actual (min 0)<br>
     CO₂ = Wasted kWh × 0.727 kg
     </div>""", unsafe_allow_html=True)
 
@@ -131,21 +134,26 @@ st.markdown('<div class="main-subtitle">India Solar Curtailment Tracker — Real
 
 # ── Before button click ───────────────────────────────────────────────────────
 if not run_btn:
-    st.markdown('<div class="info-box">Select a region and year in the sidebar, then click <b>Run Analysis</b> to begin.</div>', unsafe_allow_html=True)
+    st.markdown(
+        '<div class="info-box">Select a region and year in the sidebar, '
+        'then click <b>Run Analysis</b> to begin.</div>',
+        unsafe_allow_html=True,
+    )
     m = folium.Map(location=[22, 80], zoom_start=5, tiles='CartoDB dark_matter')
     st_folium(m, width=None, height=480, returned_objects=[])
     st.stop()
 
 # ── Run Analysis ──────────────────────────────────────────────────────────────
 region_info = REGIONS[selected_region]
-lat, lon    = region_info['lat'], region_info['lon']
+lat         = region_info['lat']
+lon         = region_info['lon']
 capacity_mw = region_info['capacity_mw']
 region_code = region_info['code']
 state_name  = region_info['state']
 
 with st.spinner(f'Fetching data for {selected_region}...'):
 
-    # NASA POWER
+    # ── NASA POWER — monthly GHI ──────────────────────────────────────────────
     try:
         ghi_data = get_solar_potential(lat, lon, selected_year)
         avg_ghi  = round(np.mean(list(ghi_data.values())), 3) if ghi_data else 5.0
@@ -153,37 +161,41 @@ with st.spinner(f'Fetching data for {selected_region}...'):
         st.warning(f'NASA POWER error: {e}')
         ghi_data, avg_ghi = {}, 5.0
 
-    # CEA data
+    # ── CEA data — actual generation ──────────────────────────────────────────
     try:
-        cea_df     = load_cea_data('data/india_generation_clean.csv')
-        region_df  = cea_df[(cea_df['region'] == region_code) &
-                            (cea_df['date'].dt.year == selected_year)]
-        actual_mw  = region_df['solar_mwh'].mean() / 24 if len(region_df) > 0 else 0
+        cea_df    = load_cea_data('data/india_generation_clean.csv')
+        region_df = cea_df[
+            (cea_df['region'] == region_code) &
+            (cea_df['date'].dt.year == selected_year)
+        ]
+        # solar_mwh is already MWh per day — just take the mean across days
+        actual_mwh_day = region_df['solar_mwh'].mean() if len(region_df) > 0 else 0.0
     except Exception as e:
         st.warning(f'CEA data error: {e}')
-        actual_mw = 0
+        actual_mwh_day = 0.0
 
-    # NASA FIRMS
+    # ── NASA FIRMS — fire hotspots ────────────────────────────────────────────
     try:
         fires_df = get_fire_hotspots(days=fire_days)
     except Exception as e:
         st.warning(f'FIRMS error: {e}')
-        fires_df = pd.DataFrame(columns=['latitude','longitude','brightness','confidence'])
+        fires_df = pd.DataFrame(columns=['latitude', 'longitude', 'brightness', 'confidence'])
 
-    # Calculations
-    wasted_mw   = calculate_curtailment(avg_ghi, capacity_mw, actual_mw)
-    losses      = calculate_losses(wasted_mw, hours=24)
-    curtail_pct = calculate_curtailment_percent(avg_ghi * capacity_mw * 0.15, actual_mw)
+    # ── Calculations (all in MWh/day — no unit conversion errors) ────────────
+    potential_mwh_day = avg_ghi * capacity_mw                       # MWh/day
+    wasted_mwh_day    = calculate_curtailment(avg_ghi, capacity_mw, actual_mwh_day)
+    losses            = calculate_losses(wasted_mwh_day)            # kWh, Rs, kg CO2
+    curtail_pct       = calculate_curtailment_percent(potential_mwh_day, actual_mwh_day)
 
-    # ML classifier
+    # ── ML classifier ─────────────────────────────────────────────────────────
     try:
-        full_df   = load_cea_data('data/india_generation_clean.csv')
-        features  = prepare_features(full_df)
+        full_df         = load_cea_data('data/india_generation_clean.csv')
+        features        = prepare_features(full_df)
         clf, scaler, labelled = train_model(features)
-        row = labelled[labelled['region'] == region_code]
-        solar_share = float(row['solar_share_pct'].values[0]) if len(row) > 0 else 20.0
-        coal_share  = float(row['coal_share_pct'].values[0])  if len(row) > 0 else 50.0
-        risk_label  = predict_risk(clf, scaler, curtail_pct, solar_share, coal_share)
+        row             = labelled[labelled['region'] == region_code]
+        solar_share     = float(row['solar_share_pct'].values[0]) if len(row) > 0 else 20.0
+        coal_share      = float(row['coal_share_pct'].values[0])  if len(row) > 0 else 50.0
+        risk_label      = predict_risk(clf, scaler, curtail_pct, solar_share, coal_share)
     except Exception as e:
         st.warning(f'ML error: {e}')
         risk_label = 'Medium'
@@ -193,48 +205,54 @@ with st.spinner(f'Fetching data for {selected_region}...'):
 # ── Metrics ───────────────────────────────────────────────────────────────────
 st.markdown('<div class="section-header">Analysis Results</div>', unsafe_allow_html=True)
 c1, c2, c3, c4, c5 = st.columns(5)
-c1.metric('Avg GHI',        f'{avg_ghi} kWh/m²/d')
-c2.metric('Wasted Energy',  f'{losses["wasted_kwh"]:,.0f} kWh')
-c3.metric('Money Lost',     f'₹{losses["money_rs"]:,.0f}')
-c4.metric('CO₂ Released',   f'{losses["co2_kg"]:,.0f} kg')
-c5.metric('Curtailment',    f'{curtail_pct:.1f}%')
+c1.metric('Avg GHI',       f'{avg_ghi} kWh/m²/d')
+c2.metric('Wasted Energy', f'{losses["wasted_kwh"]:,.0f} kWh/day')
+c3.metric('Money Lost',    f'₹{losses["money_rs"]:,.0f}/day')
+c4.metric('CO₂ Released',  f'{losses["co2_kg"]:,.0f} kg/day')
+c5.metric('Curtailment',   f'{curtail_pct:.1f}%')
 
 risk_class = f'risk-{risk_label.lower()}'
 st.markdown(
     f'ML Risk Classification: <span class="risk-badge {risk_class}">{risk_label} Risk</span>',
-    unsafe_allow_html=True
+    unsafe_allow_html=True,
 )
 
 # ── Map ───────────────────────────────────────────────────────────────────────
-st.markdown('<div class="section-header">Interactive Map — Fire Hotspots & Solar Regions</div>', unsafe_allow_html=True)
+st.markdown(
+    '<div class="section-header">Interactive Map — Fire Hotspots & Solar Regions</div>',
+    unsafe_allow_html=True,
+)
 
 m = folium.Map(location=[22, 80], zoom_start=5, tiles='CartoDB dark_matter')
 
 for rname, info in REGIONS.items():
     is_sel = (info['code'] == region_code)
     folium.CircleMarker(
-        location=[info['lat'], info['lon']],
-        radius=18 if is_sel else 10,
-        color=risk_color if is_sel else '#378add',
-        fill=True,
-        fill_color=risk_color if is_sel else '#185fa5',
-        fill_opacity=0.8 if is_sel else 0.4,
+        location     = [info['lat'], info['lon']],
+        radius       = 18 if is_sel else 10,
+        color        = risk_color if is_sel else '#378add',
+        fill         = True,
+        fill_color   = risk_color if is_sel else '#185fa5',
+        fill_opacity = 0.8 if is_sel else 0.4,
         tooltip=folium.Tooltip(
             f"<b>{info['state']}</b><br>Region: {info['code']}<br>"
             f"Capacity: {info['capacity_mw']:,} MW"
             + (f"<br><b>Risk: {risk_label}</b>" if is_sel else "")
-        )
+        ),
     ).add_to(m)
 
 folium.Marker(
     location=[lat + 1.5, lon],
     icon=folium.DivIcon(
-        html=f'<div style="font-size:12px;font-weight:700;color:{risk_color};'
-             f'background:#0f1117;padding:3px 8px;border-radius:4px;'
-             f'border:1px solid {risk_color};white-space:nowrap;">'
-             f'{state_name} — {risk_label} Risk</div>',
-        icon_size=(180, 30), icon_anchor=(90, 0)
-    )
+        html=(
+            f'<div style="font-size:12px;font-weight:700;color:{risk_color};'
+            f'background:#0f1117;padding:3px 8px;border-radius:4px;'
+            f'border:1px solid {risk_color};white-space:nowrap;">'
+            f'{state_name} — {risk_label} Risk</div>'
+        ),
+        icon_size=(180, 30),
+        icon_anchor=(90, 0),
+    ),
 ).add_to(m)
 
 if len(fires_df) > 0:
@@ -243,10 +261,13 @@ if len(fires_df) > 0:
             conf = str(row.get('confidence', 'n')).lower()
             if conf in ['high', 'h', 'nominal', 'n']:
                 folium.CircleMarker(
-                    location=[float(row['latitude']), float(row['longitude'])],
-                    radius=2, color='#ff6b35', fill=True,
-                    fill_color='#ff4500', fill_opacity=0.7,
-                    tooltip='Fire hotspot'
+                    location     = [float(row['latitude']), float(row['longitude'])],
+                    radius       = 2,
+                    color        = '#ff6b35',
+                    fill         = True,
+                    fill_color   = '#ff4500',
+                    fill_opacity = 0.7,
+                    tooltip      = 'Fire hotspot',
                 ).add_to(m)
         except Exception:
             continue
@@ -263,10 +284,14 @@ legend_html = f"""
 m.get_root().html.add_child(folium.Element(legend_html))
 st_folium(m, width=None, height=520, returned_objects=[])
 
-# ── GHI Chart ─────────────────────────────────────────────────────────────────
+# ── GHI Monthly Chart ─────────────────────────────────────────────────────────
 if ghi_data:
-    st.markdown('<div class="section-header">Monthly Solar Potential (GHI) — NASA POWER</div>', unsafe_allow_html=True)
-    month_labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+    st.markdown(
+        '<div class="section-header">Monthly Solar Potential (GHI) — NASA POWER</div>',
+        unsafe_allow_html=True,
+    )
+    month_labels = ['Jan','Feb','Mar','Apr','May','Jun',
+                    'Jul','Aug','Sep','Oct','Nov','Dec']
     months = sorted(ghi_data.keys())
     values = [ghi_data[m] for m in months]
     xlbls  = [month_labels[int(m[4:6]) - 1] for m in months]
@@ -285,26 +310,35 @@ if ghi_data:
     st.pyplot(fig)
     plt.close()
 
-# ── Summary table ─────────────────────────────────────────────────────────────
+# ── Summary Table ─────────────────────────────────────────────────────────────
 st.markdown('<div class="section-header">Summary</div>', unsafe_allow_html=True)
-st.dataframe(pd.DataFrame({
-    'Region':            [selected_region],
-    'State':             [state_name],
-    'Year':              [selected_year],
-    'GHI (kWh/m²/d)':   [avg_ghi],
-    'Wasted (kWh/day)':  [f'{losses["wasted_kwh"]:,.0f}'],
-    'Money Lost (₹/day)':[f'{losses["money_rs"]:,.0f}'],
-    'CO₂ (kg/day)':      [f'{losses["co2_kg"]:,.0f}'],
-    'Curtailment %':     [f'{curtail_pct:.1f}%'],
-    'Risk':              [risk_label],
-}), use_container_width=True, hide_index=True)
+st.dataframe(
+    pd.DataFrame({
+        'Region':             [selected_region],
+        'State':              [state_name],
+        'Year':               [selected_year],
+        'Capacity (MW)':      [f'{capacity_mw:,}'],
+        'GHI (kWh/m²/d)':    [avg_ghi],
+        'Potential (MWh/d)':  [f'{potential_mwh_day:,.0f}'],
+        'Actual (MWh/d)':     [f'{actual_mwh_day:,.0f}'],
+        'Wasted (kWh/day)':   [f'{losses["wasted_kwh"]:,.0f}'],
+        'Money Lost (₹/day)': [f'{losses["money_rs"]:,.0f}'],
+        'CO₂ (kg/day)':       [f'{losses["co2_kg"]:,.0f}'],
+        'Curtailment %':      [f'{curtail_pct:.1f}%'],
+        'Risk':               [risk_label],
+    }),
+    use_container_width=True,
+    hide_index=True,
+)
 
-# ── Fire stats ────────────────────────────────────────────────────────────────
+# ── Fire Hotspot Stats ────────────────────────────────────────────────────────
 if len(fires_df) > 0:
     st.markdown('<div class="section-header">Fire Hotspot Summary</div>', unsafe_allow_html=True)
     f1, f2, f3 = st.columns(3)
     f1.metric('Total Hotspots', f'{len(fires_df):,}')
-    high_conf = fires_df[fires_df['confidence'].astype(str).str.lower().isin(['high','h'])].shape[0]
+    high_conf = fires_df[
+        fires_df['confidence'].astype(str).str.lower().isin(['high', 'h'])
+    ].shape[0]
     f2.metric('High Confidence', f'{high_conf:,}')
     if 'brightness' in fires_df.columns:
         f3.metric('Avg Brightness (K)', f'{fires_df["brightness"].mean():.1f}')
