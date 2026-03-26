@@ -9,3 +9,4 @@ streamlit-folium>=0.18.0
 geopy>=2.4.0
 scipy>=1.12.0
 numpy>=1.26.0
+python-dotenv>=1.0.0
