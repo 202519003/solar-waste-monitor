@@ -3,7 +3,7 @@ import requests
 import pandas as pd
 import os
 
-# NASA FIRMS API key — load from environment or use default
+# NASA FIRMS API key — load from environment variable or use default
 MAP_KEY = os.environ.get('NASA_FIRMS_KEY', '607ea5aeb4ae9ca8d5bdb4052426d7a5')
 
 
@@ -21,7 +21,7 @@ def get_solar_potential(lat, lon, year):
 
     Returns:
         dict : {YYYYMM: GHI_value}  e.g. {'202501': 4.05, '202502': 4.97, ...}
-        Returns {} on failure (caller should use a fallback value).
+        Returns {} on failure (caller uses fallback GHI = 5.0).
     """
     url = 'https://power.larc.nasa.gov/api/temporal/monthly/point'
     params = {
@@ -38,7 +38,7 @@ def get_solar_potential(lat, lon, year):
         response.raise_for_status()
         data = response.json()
         raw  = data['properties']['parameter']['ALLSKY_SFC_SW_DWN']
-        # Filter: remove -999 (missing) and the 13th entry which is annual average
+        # Filter: remove -999 (missing) and the 13th entry (annual average)
         ghi = {k: v for k, v in raw.items() if v != -999.0 and len(k) == 6}
         return ghi
     except Exception as e:
@@ -67,7 +67,6 @@ def get_fire_hotspots(days=7):
         df = pd.read_csv(url)
         if df.empty:
             return pd.DataFrame(columns=['latitude', 'longitude', 'brightness', 'confidence'])
-        # Keep only the columns we need; ignore others gracefully
         cols = [c for c in ['latitude', 'longitude', 'brightness', 'confidence'] if c in df.columns]
         return df[cols]
     except Exception as e:
@@ -75,23 +74,40 @@ def get_fire_hotspots(days=7):
         return pd.DataFrame(columns=['latitude', 'longitude', 'brightness', 'confidence'])
 
 
-def load_cea_data(filepath='data/india_generation_clean.csv'):
+def load_cea_data(filepath=None):
     """
     Loads the cleaned CEA solar generation CSV.
     This contains ACTUAL recorded generation per region per day.
 
     Args:
-        filepath : str — path to india_generation_clean.csv
+        filepath : str — full path to india_generation_clean.csv
+                         If None, tries the default relative path.
 
     Returns:
         DataFrame with columns:
             date, region, region_name, state, lat, lon,
             solar_mwh, demand_mwh, coal_mwh
 
-    NOTE:
+    Notes:
         solar_mwh  = actual daily solar generation for the region (MWh/day)
         demand_mwh = total energy demand for the region (MWh/day)
         coal_mwh   = coal generation for the region (MWh/day)
     """
+    if filepath is None:
+        # Default path — works when running locally from repo root
+        filepath = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            '..', '..', 'data', 'india_generation_clean.csv'
+        )
+        filepath = os.path.abspath(filepath)
+
+    if not os.path.exists(filepath):
+        raise FileNotFoundError(
+            f'CEA data file not found: {filepath}\n'
+            'Make sure india_generation_clean.csv is committed to your GitHub repo '
+            'inside a data/ folder at the repo root.'
+        )
+
     df = pd.read_csv(filepath, parse_dates=['date'])
     return df
+    
