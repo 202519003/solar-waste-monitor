@@ -1,403 +1,425 @@
-import sys
-import os
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+"""
+dashboard.py  —  Streamlit GUI
+================================
+Responsibilities (Mehul Chaudhary):
+  render_sidebar()     → state + year dropdowns + run button
+  render_metrics()     → three st.metric cards
+  render_map()         → Folium choropleth + fire overlay
+  render_bar_chart()   → monthly curtailment bar chart
+  render_risk_badge()  → ML risk prediction badge
+  render_fire_panel()  → solar-fire connection side panel
+  run_dashboard()      → main function — wires all panels together
+"""
 
+import os
+import json
 import streamlit as st
-import folium
-from streamlit_folium import st_folium
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib
-matplotlib.use('Agg')
+import folium
+from streamlit_folium import st_folium
+import geopandas as gpd
 
-from src.logic.fetcher import get_solar_potential, get_fire_hotspots, load_cea_data
-from src.logic.calculator import calculate_curtailment, calculate_losses, calculate_curtailment_percent
-from src.logic.classifier import prepare_features, train_model, predict_risk, get_risk_color
+from src.logic.fetcher    import load_generation, load_fire_data, GEOJSON_TO_CSV
+from src.logic.calculator import compute_curtailment, compute_all_states, _fallback_ghi
+from src.logic.classifier import train_model, predict_risk, get_risk_color
 
-# ── Page config ───────────────────────────────────────────────────────────────
-st.set_page_config(
-    page_title='SolarWaste Monitor',
-    page_icon='☀️',
-    layout='wide',
-    initial_sidebar_state='expanded'
-)
 
-# ── Custom CSS ────────────────────────────────────────────────────────────────
-st.markdown("""
-<style>
-    /* Main background */
-    .stApp { background-color: #0f1117; }
+# ─────────────────────────────────────────────────────────────────────────────
+# CONSTANTS
+# ─────────────────────────────────────────────────────────────────────────────
 
-    /* Metric cards */
-    [data-testid="metric-container"] {
-        background: #1a1d27;
-        border: 1px solid #2a2d3a;
-        border-radius: 12px;
-        padding: 16px 20px;
-    }
-    [data-testid="metric-container"] label {
-        color: #8b8fa8 !important;
-        font-size: 12px !important;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    [data-testid="metric-container"] [data-testid="metric-value"] {
-        color: #ffffff !important;
-        font-size: 26px !important;
-        font-weight: 700 !important;
-    }
+DATA_DIR   = os.path.join(os.path.dirname(__file__), "..", "..", "data")
+GEOJSON    = os.path.join(DATA_DIR, "india_states.geojson")
 
-    /* Sidebar */
-    [data-testid="stSidebar"] {
-        background-color: #13151f;
-        border-right: 1px solid #2a2d3a;
-    }
-    [data-testid="stSidebar"] .stSelectbox label,
-    [data-testid="stSidebar"] .stSlider label,
-    [data-testid="stSidebar"] p {
-        color: #c0c3d4 !important;
-    }
+SOLAR_STATES = [
+    "Rajasthan", "Gujarat", "Karnataka", "Tamil Nadu",
+    "Andhra Pradesh", "Telangana", "Maharashtra", "Madhya Pradesh",
+    "Uttar Pradesh", "Punjab", "Haryana", "Odisha",
+    "Chhattisgarh", "Kerala", "Bihar", "West Bengal",
+    "Assam", "Himachal Pradesh", "Uttarakhand", "Jharkhand",
+]
 
-    /* Title */
-    .main-title {
-        font-size: 32px;
-        font-weight: 800;
-        color: #ffffff;
-        letter-spacing: -0.5px;
-        margin-bottom: 2px;
-    }
-    .main-subtitle {
-        font-size: 14px;
-        color: #8b8fa8;
-        margin-bottom: 24px;
-    }
-
-    /* Risk badge */
-    .risk-badge {
-        display: inline-block;
-        padding: 4px 14px;
-        border-radius: 20px;
-        font-size: 13px;
-        font-weight: 600;
-        margin-top: 4px;
-    }
-    .risk-high   { background: #3d1515; color: #e24b4a; border: 1px solid #e24b4a; }
-    .risk-medium { background: #3d2e0a; color: #ef9f27; border: 1px solid #ef9f27; }
-    .risk-low    { background: #0a2e1e; color: #1d9e75; border: 1px solid #1d9e75; }
-
-    /* Section headers */
-    .section-header {
-        font-size: 13px;
-        font-weight: 600;
-        color: #8b8fa8;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        margin: 24px 0 12px;
-        border-bottom: 1px solid #2a2d3a;
-        padding-bottom: 8px;
-    }
-
-    /* Info box */
-    .info-box {
-        background: #1a1d27;
-        border: 1px solid #2a2d3a;
-        border-left: 3px solid #378add;
-        border-radius: 0 8px 8px 0;
-        padding: 12px 16px;
-        font-size: 13px;
-        color: #8b8fa8;
-        margin: 12px 0;
-    }
-
-    /* Hide streamlit branding */
-    #MainMenu, footer, header { visibility: hidden; }
-</style>
-""", unsafe_allow_html=True)
-
-# ── Region metadata ───────────────────────────────────────────────────────────
-REGIONS = {
-    'North India (NR)':  {'code': 'NR', 'state': 'Rajasthan',  'lat': 26.91, 'lon': 74.22, 'capacity_mw': 18000},
-    'West India (WR)':   {'code': 'WR', 'state': 'Gujarat',    'lat': 23.02, 'lon': 72.57, 'capacity_mw': 12000},
-    'South India (SR)':  {'code': 'SR', 'state': 'Tamil Nadu', 'lat': 11.12, 'lon': 78.66, 'capacity_mw': 16000},
-    'East India (ER)':   {'code': 'ER', 'state': 'Odisha',     'lat': 20.95, 'lon': 85.09, 'capacity_mw': 4000},
-    'NE India (NER)':    {'code': 'NER','state': 'Assam',      'lat': 26.20, 'lon': 92.93, 'capacity_mw': 500},
+MONTH_NAMES = {
+    1:"Jan", 2:"Feb", 3:"Mar", 4:"Apr", 5:"May", 6:"Jun",
+    7:"Jul", 8:"Aug", 9:"Sep", 10:"Oct", 11:"Nov", 12:"Dec"
 }
 
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-with st.sidebar:
-    st.markdown("### ☀️ SolarWaste Monitor")
-    st.markdown("---")
 
-    selected_region = st.selectbox(
-        'Select Region',
-        list(REGIONS.keys()),
-        index=0
+# ─────────────────────────────────────────────────────────────────────────────
+# PAGE CONFIG  (must be first Streamlit call)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def set_page_config():
+    st.set_page_config(
+        page_title  = "SolarWaste Monitor",
+        page_icon   = "☀️",
+        layout      = "wide",
+        initial_sidebar_state = "expanded",
     )
 
-    selected_year = st.slider(
-        'Year',
-        min_value=2022,
-        max_value=2025,
-        value=2025,
-        step=1
-    )
 
-    fire_days = st.selectbox(
-        'Fire data window',
-        [1, 3, 7, 14],
-        index=2,
-        format_func=lambda x: f'Last {x} days'
-    )
+# ─────────────────────────────────────────────────────────────────────────────
+# SIDEBAR
+# ─────────────────────────────────────────────────────────────────────────────
 
-    run_btn = st.button('Run Analysis', use_container_width=True, type='primary')
+def render_sidebar():
+    """Renders sidebar controls. Returns (selected_state, selected_year, run_clicked)."""
+    with st.sidebar:
+        st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Solar_panel.jpg/320px-Solar_panel.jpg",
+                 use_column_width=True)
+        st.title("☀️ SolarWaste Monitor")
+        st.caption("India Solar Curtailment & Forest Fire Risk")
+        st.divider()
 
-    st.markdown("---")
-    # FIX 1: Updated formula label in sidebar to show the correct formula
-    st.markdown("""
-    <div style='font-size:12px; color:#555870;'>
-    <strong style='color:#8b8fa8;'>Data sources</strong><br><br>
-    CEA / GRID-INDIA — actual generation<br>
-    NASA POWER — solar potential (GHI)<br>
-    NASA FIRMS — fire hotspots<br><br>
-    <strong style='color:#8b8fa8;'>Formula</strong><br><br>
-    Potential = GHI × Capacity (MWh/day)<br>
-    Curtailed = Potential − Actual (min 0)<br>
-    CO₂ = Wasted kWh × 0.727 kg
-    </div>
-    """, unsafe_allow_html=True)
-
-# ── Header ────────────────────────────────────────────────────────────────────
-st.markdown('<div class="main-title">☀️ SolarWaste Monitor</div>', unsafe_allow_html=True)
-st.markdown('<div class="main-subtitle">India Solar Curtailment Tracker — Real-time wasted energy, CO₂ loss & fire risk</div>', unsafe_allow_html=True)
-
-# ── Default state (before button click) ──────────────────────────────────────
-if not run_btn:
-    st.markdown('<div class="info-box">Select a region and year in the sidebar, then click <strong>Run Analysis</strong> to begin.</div>', unsafe_allow_html=True)
-
-    # Show empty map of India
-    m = folium.Map(location=[22, 80], zoom_start=5, tiles='CartoDB dark_matter')
-    st_folium(m, width=None, height=480, returned_objects=[])
-    st.stop()
-
-# ── Run Analysis ──────────────────────────────────────────────────────────────
-region_info = REGIONS[selected_region]
-lat         = region_info['lat']
-lon         = region_info['lon']
-capacity_mw = region_info['capacity_mw']
-region_code = region_info['code']
-state_name  = region_info['state']
-
-with st.spinner(f'Fetching data for {selected_region}...'):
-
-    # 1. NASA POWER — solar potential
-    try:
-        ghi_data = get_solar_potential(lat, lon, selected_year)
-        avg_ghi  = round(np.mean(list(ghi_data.values())), 3) if ghi_data else 5.0
-    except Exception as e:
-        st.warning(f'NASA POWER API error: {e}. Using fallback GHI = 5.0')
-        avg_ghi = 5.0
-        ghi_data = {}
-
-    # 2. CEA data — actual generation
-    try:
-        cea_df = load_cea_data('data/india_generation_clean.csv')
-        region_df = cea_df[
-            (cea_df['region'] == region_code) &
-            (cea_df['date'].dt.year == selected_year)
-        ]
-        actual_mwh_daily = region_df['solar_mwh'].mean() if len(region_df) > 0 else 0
-        # NOTE: actual_mwh_daily is already MWh/day — no need to divide by 24
-    except Exception as e:
-        st.warning(f'CEA data error: {e}. Using fallback actual = 0')
-        actual_mwh_daily = 0
-
-    # 3. NASA FIRMS — fire hotspots
-    try:
-        fires_df = get_fire_hotspots(days=fire_days)
-    except Exception as e:
-        st.warning(f'FIRMS API error: {e}. Fire data unavailable.')
-        fires_df = pd.DataFrame(columns=['latitude', 'longitude', 'brightness', 'confidence'])
-
-    # 4. Calculations
-    # FIX 2: Pass actual_mwh_daily (MWh/day) directly — not actual_mw
-    # FIX 3: calculate_losses() takes only wasted_mwh — no hours= argument
-    # FIX 4: curtail_pct uses correct formula without × 0.15 efficiency factor
-    wasted_mwh  = calculate_curtailment(avg_ghi, capacity_mw, actual_mwh_daily)
-    losses      = calculate_losses(wasted_mwh)
-    curtail_pct = calculate_curtailment_percent(avg_ghi * capacity_mw, actual_mwh_daily)
-
-    # 5. ML Risk classification
-    try:
-        full_df   = load_cea_data('data/india_generation_clean.csv')
-        features  = prepare_features(full_df)
-        clf, scaler, labelled = train_model(features)
-        region_row = labelled[labelled['region'] == region_code]
-        if len(region_row) > 0:
-            solar_share = float(region_row['solar_share_pct'].values[0])
-            coal_share  = float(region_row['coal_share_pct'].values[0])
-        else:
-            solar_share, coal_share = 20.0, 50.0
-        risk_label = predict_risk(clf, scaler, curtail_pct, solar_share, coal_share)
-    except Exception as e:
-        st.warning(f'ML classifier error: {e}')
-        risk_label = 'Medium'
-
-    risk_color = get_risk_color(risk_label)
-
-# ── Metrics row ───────────────────────────────────────────────────────────────
-st.markdown('<div class="section-header">Analysis Results</div>', unsafe_allow_html=True)
-
-col1, col2, col3, col4, col5 = st.columns(5)
-
-with col1:
-    st.metric('Avg GHI', f'{avg_ghi} kWh/m²/d', help='NASA satellite solar potential')
-with col2:
-    st.metric('Wasted Energy', f'{losses["wasted_kwh"]:,.0f} kWh/day', help='Energy curtailed per day')
-with col3:
-    st.metric('Money Lost', f'₹{losses["money_rs"]:,.0f}/day', help='At ₹3/kWh compensation rate')
-with col4:
-    st.metric('CO₂ Released', f'{losses["co2_kg"]:,.0f} kg/day', help='At 0.727 kg CO₂ per kWh (CEA)')
-with col5:
-    st.metric('Curtailment', f'{curtail_pct:.1f}%', help='% of potential solar that was wasted')
-
-# Risk badge
-risk_class = f'risk-{risk_label.lower()}'
-st.markdown(
-    f'ML Risk Classification: <span class="risk-badge {risk_class}">{risk_label} Risk</span>',
-    unsafe_allow_html=True
-)
-
-# ── Map ───────────────────────────────────────────────────────────────────────
-st.markdown('<div class="section-header">Interactive Map — Fire Hotspots & Solar Regions</div>', unsafe_allow_html=True)
-
-m = folium.Map(location=[22, 80], zoom_start=5, tiles='CartoDB dark_matter')
-
-# Add all region markers
-for region_name, info in REGIONS.items():
-    is_selected = (info['code'] == region_code)
-    folium.CircleMarker(
-        location=[info['lat'], info['lon']],
-        radius=18 if is_selected else 10,
-        color=risk_color if is_selected else '#378add',
-        fill=True,
-        fill_color=risk_color if is_selected else '#185fa5',
-        fill_opacity=0.8 if is_selected else 0.4,
-        tooltip=folium.Tooltip(
-            f"<b>{info['state']}</b><br>"
-            f"Region: {info['code']}<br>"
-            f"Capacity: {info['capacity_mw']:,} MW"
-            + (f"<br><b>Risk: {risk_label}</b>" if is_selected else "")
+        state = st.selectbox(
+            "Select State",
+            options=SOLAR_STATES,
+            index=0,
+            help="Choose an Indian state to analyse solar curtailment.",
         )
+
+        year = st.selectbox(
+            "Select Year",
+            options=[2023, 2024, 2025],
+            index=1,
+            help="CEA generation data is available for 2023–2025.",
+        )
+
+        use_api = st.checkbox(
+            "Fetch live GHI from NASA POWER",
+            value=False,
+            help="Uncheck to use offline GHI estimates (faster for testing).",
+        )
+
+        run = st.button("🔍 Run Analysis", type="primary", use_container_width=True)
+
+        st.divider()
+        st.caption("Data sources: CEA, NASA POWER, NASA FIRMS VIIRS, MNRE")
+
+    return state, year, use_api, run
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# METRIC CARDS
+# ─────────────────────────────────────────────────────────────────────────────
+
+def render_metrics(result: dict):
+    """Renders three metric cards: Wasted MWh, Money Lost, CO2."""
+    c1, c2, c3 = st.columns(3)
+
+    with c1:
+        st.metric(
+            label="⚡ Energy Wasted",
+            value=f"{result['total_curtailed_mwh']:,.0f} MWh",
+            delta=f"{result['curtailment_pct']}% curtailment",
+            delta_color="inverse",
+        )
+
+    with c2:
+        st.metric(
+            label="💸 Money Lost",
+            value=f"₹{result['money_lost_cr']:.2f} Cr",
+            help="Based on avg. SECI solar tariff ₹2.50/kWh",
+        )
+
+    with c3:
+        st.metric(
+            label="🏭 CO₂ Released",
+            value=f"{result['co2_released_tons']:,.0f} tonnes",
+            help="CEA Grid Emission Factor: 0.727 kg/kWh",
+        )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# FOLIUM MAP
+# ─────────────────────────────────────────────────────────────────────────────
+
+def render_map(summary_df: pd.DataFrame, fire_df: pd.DataFrame,
+               selected_state: str):
+    """
+    Renders Folium choropleth map with:
+      - State fill colour by curtailed MWh (green → dark red)
+      - NASA FIRMS fire hotspots as orange dots
+      - Popup on each state showing key metrics
+    """
+    st.subheader("🗺️ India Curtailment Map + Fire Hotspots")
+
+    # Load GeoJSON
+    gdf = gpd.read_file(GEOJSON)
+
+    # Fix name mismatches
+    gdf["NAME_1"] = gdf["NAME_1"].replace(GEOJSON_TO_CSV)
+
+    # Merge with summary data
+    gdf = gdf.merge(summary_df, left_on="NAME_1", right_on="State", how="left")
+
+    # Build Folium map centred on India
+    m = folium.Map(
+        location=[22.5, 80.0],
+        zoom_start=5,
+        tiles="CartoDB positron",
+    )
+
+    # Choropleth layer
+    folium.Choropleth(
+        geo_data=gdf.__geo_interface__,
+        data=summary_df,
+        columns=["State", "total_curtailed_mwh"],
+        key_on="feature.properties.NAME_1",
+        fill_color="RdYlGn_r",      # Green = low waste, Red = high waste
+        fill_opacity=0.75,
+        line_opacity=0.4,
+        legend_name="Curtailed Energy (MWh)",
+        nan_fill_color="lightgrey",
     ).add_to(m)
 
-# Add selected region label
-folium.Marker(
-    location=[lat + 1.5, lon],
-    icon=folium.DivIcon(
-        html=f'<div style="font-size:12px;font-weight:700;color:{risk_color};'
-             f'background:#0f1117;padding:3px 8px;border-radius:4px;'
-             f'border:1px solid {risk_color};white-space:nowrap;">'
-             f'{state_name} — {risk_label} Risk</div>',
-        icon_size=(180, 30),
-        icon_anchor=(90, 0)
-    )
-).add_to(m)
-
-# Add fire hotspot dots
-if len(fires_df) > 0:
-    fire_count = 0
-    for _, row in fires_df.iterrows():
-        try:
-            conf = str(row.get('confidence', 'n')).lower()
-            if conf in ['high', 'h', 'nominal', 'n']:
-                folium.CircleMarker(
-                    location=[float(row['latitude']), float(row['longitude'])],
-                    radius=2,
-                    color='#ff6b35',
-                    fill=True,
-                    fill_color='#ff4500',
-                    fill_opacity=0.7,
-                    tooltip='Fire hotspot'
-                ).add_to(m)
-                fire_count += 1
-        except Exception:
+    # State popups
+    for _, row in gdf.iterrows():
+        if pd.isna(row.get("curtailment_pct")):
             continue
+        popup_html = f"""
+        <b>{row['NAME_1']}</b><br>
+        Curtailment: {row.get('curtailment_pct', 'N/A')}%<br>
+        Wasted: {row.get('total_curtailed_mwh', 0):,.0f} MWh<br>
+        Money lost: ₹{row.get('money_lost_cr', 0):.1f} Cr<br>
+        CO₂: {row.get('co2_released_tons', 0):,.0f} t
+        """
+        # Place a transparent marker at state centroid for popup
+        centroid = row.geometry.centroid
+        folium.Marker(
+            location=[centroid.y, centroid.x],
+            popup=folium.Popup(popup_html, max_width=220),
+            icon=folium.DivIcon(html="", icon_size=(0, 0)),
+        ).add_to(m)
 
-# Legend
-legend_html = f"""
-<div style='position:fixed;bottom:30px;left:30px;z-index:1000;
-     background:#0f1117;border:1px solid #2a2d3a;border-radius:10px;
-     padding:12px 16px;font-size:12px;color:#c0c3d4;'>
-  <div style='font-weight:700;margin-bottom:8px;color:#fff;'>Legend</div>
-  <div><span style='color:{risk_color};font-size:16px;'>●</span> {state_name} ({risk_label} Risk)</div>
-  <div><span style='color:#378add;font-size:16px;'>●</span> Other regions</div>
-  <div><span style='color:#ff6b35;font-size:16px;'>●</span> Fire hotspots (NASA FIRMS)</div>
-</div>
-"""
-m.get_root().html.add_child(folium.Element(legend_html))
+    # Fire hotspot overlay
+    if not fire_df.empty:
+        fire_sample = fire_df.sample(min(len(fire_df), 1000), random_state=42)
+        for _, frow in fire_sample.iterrows():
+            folium.CircleMarker(
+                location=[frow["latitude"], frow["longitude"]],
+                radius=2,
+                color="#FF6600",
+                fill=True,
+                fill_color="#FF6600",
+                fill_opacity=0.6,
+                popup=f"FRP: {frow.get('frp', 'N/A')} MW | {frow.get('acq_date', '')}",
+            ).add_to(m)
 
-st_folium(m, width=None, height=520, returned_objects=[])
+    # Highlight selected state
+    folium.GeoJson(
+        gdf[gdf["NAME_1"] == selected_state].__geo_interface__,
+        style_function=lambda x: {
+            "fillColor":   "none",
+            "color":       "#0047AB",
+            "weight":       3,
+            "dashArray":   "5 5",
+        },
+    ).add_to(m)
 
-# ── Monthly GHI chart ─────────────────────────────────────────────────────────
-st.markdown('<div class="section-header">Monthly Solar Potential (GHI) — NASA POWER</div>', unsafe_allow_html=True)
+    st_folium(m, width="100%", height=520)
 
-if ghi_data:
-    month_labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
-    months = sorted(ghi_data.keys())
-    values = [ghi_data[m] for m in months]
-    x_labels = [month_labels[int(m[4:6]) - 1] for m in months]
 
-    fig, ax = plt.subplots(figsize=(10, 3))
-    fig.patch.set_facecolor('#1a1d27')
-    ax.set_facecolor('#1a1d27')
+# ─────────────────────────────────────────────────────────────────────────────
+# BAR CHART
+# ─────────────────────────────────────────────────────────────────────────────
 
-    bars = ax.bar(x_labels, values, color='#378add', alpha=0.7, width=0.6, edgecolor='none')
-    # Highlight peak month
-    peak_idx = values.index(max(values))
-    bars[peak_idx].set_color('#EF9F27')
-    bars[peak_idx].set_alpha(1.0)
+def render_bar_chart(monthly_df: pd.DataFrame, state: str, year: int):
+    """Renders a monthly curtailment bar chart using Matplotlib."""
+    st.subheader(f"📊 Monthly Curtailment — {state} ({year})")
 
-    ax.set_ylabel('kWh/m²/day', color='#8b8fa8', fontsize=10)
-    ax.tick_params(colors='#8b8fa8', labelsize=9)
-    for spine in ax.spines.values():
-        spine.set_color('#2a2d3a')
-    ax.yaxis.set_tick_params(labelcolor='#8b8fa8')
-    ax.xaxis.set_tick_params(labelcolor='#8b8fa8')
-    ax.axhline(y=np.mean(values), color='#1d9e75', linestyle='--', alpha=0.6, linewidth=1)
-    ax.text(len(values) - 0.5, np.mean(values) + 0.1,
-            f'avg {np.mean(values):.1f}', color='#1d9e75', fontsize=9, ha='right')
+    fig, ax = plt.subplots(figsize=(10, 4))
+    fig.patch.set_facecolor("#0E1117")
+    ax.set_facecolor("#0E1117")
 
-    plt.tight_layout()
+    months     = monthly_df["Month"].apply(lambda m: MONTH_NAMES[m])
+    actual     = monthly_df["Actual_MWh"]
+    curtailed  = monthly_df["Curtailed_MWh"]
+
+    x = np.arange(len(months))
+    width = 0.4
+
+    bars1 = ax.bar(x - width/2, actual / 1000,    width, label="Actual (GWh)",    color="#2196F3", alpha=0.85)
+    bars2 = ax.bar(x + width/2, curtailed / 1000, width, label="Curtailed (GWh)", color="#F44336", alpha=0.85)
+
+    ax.set_xlabel("Month", color="white")
+    ax.set_ylabel("Energy (GWh)", color="white")
+    ax.set_xticks(x)
+    ax.set_xticklabels(months, color="white")
+    ax.tick_params(colors="white")
+    ax.spines["bottom"].set_color("#555")
+    ax.spines["left"].set_color("#555")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    ax.legend(facecolor="#1E1E1E", labelcolor="white")
+
     st.pyplot(fig)
     plt.close()
 
-# ── Summary table ─────────────────────────────────────────────────────────────
-st.markdown('<div class="section-header">Region Summary</div>', unsafe_allow_html=True)
 
-summary_data = {
-    'Region':               [selected_region],
-    'Representative State': [state_name],
-    'Year':                 [selected_year],
-    'Avg GHI (kWh/m²/d)':  [avg_ghi],
-    'Wasted (kWh/day)':     [f'{losses["wasted_kwh"]:,.0f}'],
-    'Money Lost (₹/day)':   [f'{losses["money_rs"]:,.0f}'],
-    'CO₂ (kg/day)':         [f'{losses["co2_kg"]:,.0f}'],
-    'Curtailment %':        [f'{curtail_pct:.1f}%'],
-    'Risk':                 [risk_label],
-}
-st.dataframe(pd.DataFrame(summary_data), use_container_width=True, hide_index=True)
+# ─────────────────────────────────────────────────────────────────────────────
+# ML RISK BADGE
+# ─────────────────────────────────────────────────────────────────────────────
 
-# ── Fire stats ────────────────────────────────────────────────────────────────
-if len(fires_df) > 0:
-    st.markdown('<div class="section-header">Fire Hotspot Summary (NASA FIRMS)</div>', unsafe_allow_html=True)
-    col1, col2, col3 = st.columns(3)
+def render_risk_badge(risk_label: str, curtailment_pct: float):
+    """Renders the ML risk prediction badge."""
+    st.subheader("🤖 ML Curtailment Risk Prediction")
+    color = get_risk_color(risk_label)
+
+    messages = {
+        "Low":    f"✅ **Low Risk** — Curtailment at {curtailment_pct:.1f}%. Grid absorption is adequate for this state.",
+        "Medium": f"⚠️ **Medium Risk** — Curtailment at {curtailment_pct:.1f}%. Grid upgrades recommended in peak months.",
+        "High":   f"🔴 **High Risk** — Curtailment at {curtailment_pct:.1f}%. Urgent grid investment and storage needed.",
+    }
+
+    msg = messages.get(risk_label, f"Risk: {risk_label} ({curtailment_pct:.1f}%)")
+
+    if color == "success":
+        st.success(msg)
+    elif color == "warning":
+        st.warning(msg)
+    else:
+        st.error(msg)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# SOLAR-FIRE CONNECTION PANEL
+# ─────────────────────────────────────────────────────────────────────────────
+
+def render_fire_panel(fire_df: pd.DataFrame, summary_df: pd.DataFrame):
+    """Shows how high-curtailment states correlate with fire hotspot counts."""
+    st.subheader("🔥 Solar Curtailment ↔ Forest Fire Connection")
+
+    if fire_df.empty:
+        st.info("Fire data not loaded. Place the NASA FIRMS CSV in the data/ folder.")
+        return
+
+    # Rough state bounding boxes for fire-to-state assignment
+    STATE_BOUNDS = {
+        "Rajasthan":    (23, 30, 69, 78),
+        "Gujarat":      (20, 25, 68, 74),
+        "Karnataka":    (11, 18, 74, 78),
+        "Tamil Nadu":   (8,  13, 77, 80),
+        "Andhra Pradesh": (13, 20, 77, 84),
+        "Telangana":    (16, 20, 77, 81),
+        "Maharashtra":  (15, 22, 72, 80),
+        "Madhya Pradesh": (21, 27, 74, 82),
+        "Uttar Pradesh":  (24, 30, 77, 84),
+    }
+
+    fire_counts = []
+    for state, (lat_min, lat_max, lon_min, lon_max) in STATE_BOUNDS.items():
+        mask = (
+            (fire_df["latitude"]  >= lat_min) & (fire_df["latitude"]  <= lat_max) &
+            (fire_df["longitude"] >= lon_min) & (fire_df["longitude"] <= lon_max)
+        )
+        count = mask.sum()
+        curtailment = summary_df.loc[summary_df["State"] == state, "curtailment_pct"]
+        curtailment_val = curtailment.values[0] if len(curtailment) > 0 else 0
+        fire_counts.append({"State": state, "Fire Hotspots": count, "Curtailment %": curtailment_val})
+
+    fc_df = pd.DataFrame(fire_counts).sort_values("Fire Hotspots", ascending=False)
+
+    col1, col2 = st.columns(2)
     with col1:
-        st.metric('Total Hotspots', f'{len(fires_df):,}', help=f'Last {fire_days} days across India')
+        st.dataframe(fc_df, use_container_width=True, hide_index=True)
     with col2:
-        high_conf = fires_df[fires_df['confidence'].astype(str).str.lower().isin(['high','h'])].shape[0]
-        st.metric('High Confidence', f'{high_conf:,}')
-    with col3:
-        if 'brightness' in fires_df.columns:
-            avg_bright = fires_df['brightness'].mean()
-            st.metric('Avg Brightness (K)', f'{avg_bright:.1f}')
+        fig, ax = plt.subplots(figsize=(5, 4))
+        fig.patch.set_facecolor("#0E1117")
+        ax.set_facecolor("#0E1117")
+        ax.scatter(fc_df["Curtailment %"], fc_df["Fire Hotspots"],
+                   color="#FF6600", s=80, alpha=0.85)
+        for _, r in fc_df.iterrows():
+            ax.annotate(r["State"][:3], (r["Curtailment %"], r["Fire Hotspots"]),
+                        fontsize=7, color="white", ha="left", va="bottom")
+        ax.set_xlabel("Curtailment %", color="white")
+        ax.set_ylabel("Fire Hotspots", color="white")
+        ax.tick_params(colors="white")
+        ax.spines["bottom"].set_color("#555")
+        ax.spines["left"].set_color("#555")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        st.pyplot(fig)
+        plt.close()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MAIN DASHBOARD FUNCTION
+# ─────────────────────────────────────────────────────────────────────────────
+
+def run_dashboard():
+    """Entry point — wires all panels together."""
+    set_page_config()
+
+    st.title("☀️ SolarWaste Monitor")
+    st.caption("India State-Level Solar Curtailment, Energy Loss & Forest Fire Risk Mapper")
+
+    state, year, use_api, run = render_sidebar()
+
+    # Load base data once (cached by Streamlit)
+    @st.cache_data
+    def cached_gen():
+        return load_generation()
+
+    gen_df = cached_gen()
+
+    if not run:
+        st.info("👈 Select a state and year in the sidebar, then click **Run Analysis**.")
+        st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/4/41/Solar_panel.jpg/640px-Solar_panel.jpg",
+                 caption="India generated over 2.3 TWh of wasted solar energy in 2025.")
+        return
+
+    # ── Run Analysis ─────────────────────────────────────────────────────────
+    with st.spinner("Fetching data and computing curtailment ..."):
+
+        # 1. GHI data
+        if use_api:
+            ghi_data = fetch_ghi(state, year)
+        else:
+            from src.logic.calculator import _fallback_ghi
+            ghi_data = _fallback_ghi(state)
+
+        # 2. Curtailment for selected state
+        result = compute_curtailment(state, year, gen_df=gen_df, ghi_data=ghi_data)
+
+        # 3. All-states summary for map and classifier
+        summary_df = compute_all_states(year=year, gen_df=gen_df, use_api=use_api)
+
+        # 4. Train / load ML model
+        model_bundle = train_model(year=year, use_api=use_api)
+        risk = predict_risk(result["curtailment_pct"], state, model_bundle=model_bundle)
+
+        # 5. Fire data
+        fire_df = load_fire_data(year=year)
+
+    # ── Render panels ─────────────────────────────────────────────────────────
+    st.success(f"Analysis complete for **{state}** ({year})")
+    st.divider()
+
+    # Metric cards
+    render_metrics(result)
+    st.divider()
+
+    # Risk badge
+    render_risk_badge(risk, result["curtailment_pct"])
+    st.divider()
+
+    # Map
+    render_map(summary_df, fire_df, state)
+    st.divider()
+
+    # Bar chart
+    render_bar_chart(result["monthly_df"], state, year)
+    st.divider()
+
+    # Fire connection panel
+    render_fire_panel(fire_df, summary_df)
+
+    # Footer
+    st.divider()
+    st.caption(
+        "Data: CEA Solar Generation Records | NASA POWER API | NASA FIRMS VIIRS | "
+        "India States GeoJSON | MNRE Installed Capacity | CEA CO₂ Factor v21.0"
+    )
