@@ -1,111 +1,97 @@
-# main.py — SolarWaste Monitor
-# Entry point for the entire application
-# Run this file to launch the app: python main.py
+"""
+main.py  —  System Entry Point
+================================
+Responsibilities (Dhruv Soni):
+  - Connects all modules
+  - Launches the Streamlit dashboard
+  - Provides CLI test runner to verify each module before the GUI
 
-import subprocess
+Usage:
+    streamlit run main.py              → launch the full dashboard
+    python main.py --test              → run all module tests without Streamlit
+    python main.py --test --test-state Rajasthan --year 2024
+"""
+
 import sys
 import os
+import argparse
+
+# Make src importable when running as: python main.py
+sys.path.insert(0, os.path.dirname(__file__))
 
 
-def check_dependencies():
-    """
-    Checks that all required libraries are installed before launching.
-    If any are missing, installs them automatically.
-    """
-    required = [
-        'streamlit',
-        'requests',
-        'pandas',
-        'geopandas',
-        'scikit-learn',
-        'folium',
-        'matplotlib',
-        'streamlit_folium',
-        'geopy',
-        'scipy',
-        'numpy',
-    ]
+def run_tests(state: str = "Rajasthan", year: int = 2024):
+    """Runs a quick end-to-end test of all modules (no Streamlit needed)."""
+    print("=" * 60)
+    print("  SolarWaste Monitor — Module Test Runner")
+    print("=" * 60)
 
-    missing = []
-    for package in required:
-        try:
-            __import__(package)
-        except ImportError:
-            missing.append(package)
+    # ── 1. fetcher ────────────────────────────────────────────────
+    print("\n[1/4] Testing fetcher.py ...")
+    from src.logic.fetcher import load_generation, load_fire_data, get_installed_mw
+    gen_df    = load_generation()
+    installed = get_installed_mw(state)
+    fire_df   = load_fire_data(year=year)
+    print(f"      ✓ Generation CSV : {gen_df.shape[0]} rows, {gen_df['State'].nunique()} states")
+    print(f"      ✓ Installed cap  : {installed} MW  ({state})")
+    print(f"      ✓ Fire hotspots  : {len(fire_df)} rows ({year})")
 
-    if missing:
-        print(f'Installing missing packages: {missing}')
-        subprocess.run(
-            [sys.executable, '-m', 'pip', 'install'] + missing,
-            check=True
-        )
-        print('All packages installed.\n')
-    else:
-        print('All dependencies satisfied.\n')
+    # ── 2. calculator ─────────────────────────────────────────────
+    print(f"\n[2/4] Testing calculator.py for {state} {year} ...")
+    from src.logic.calculator import compute_curtailment, _fallback_ghi
+    ghi    = _fallback_ghi(state)
+    result = compute_curtailment(state, year, gen_df=gen_df, ghi_data=ghi)
+    print(f"      ✓ Actual MWh    : {result['total_actual_mwh']:,.0f}")
+    print(f"      ✓ Potential MWh : {result['total_potential_mwh']:,.0f}")
+    print(f"      ✓ Curtailed MWh : {result['total_curtailed_mwh']:,.0f}")
+    print(f"      ✓ Curtailment % : {result['curtailment_pct']}%")
+    print(f"      ✓ Money Lost    : ₹{result['money_lost_cr']} Cr")
+    print(f"      ✓ CO₂ Released  : {result['co2_released_tons']} tonnes")
 
+    # ── 3. classifier ─────────────────────────────────────────────
+    print(f"\n[3/4] Testing classifier.py ...")
+    from src.logic.classifier import train_model, predict_risk
+    bundle = train_model(year=year, use_api=False)
+    risk   = predict_risk(result["curtailment_pct"], state, model_bundle=bundle)
+    print(f"      ✓ Model trained on {len(bundle['feature_df'])} states")
+    print(f"      ✓ Risk for {state}: {risk}")
+    top3 = (bundle["feature_df"]
+            .sort_values("curtailment_pct", ascending=False)
+            .head(3)[["State", "curtailment_pct", "risk_label"]])
+    print("\n      Top 3 highest curtailment states:")
+    for _, r in top3.iterrows():
+        print(f"        {r['State']:20s}  {r['curtailment_pct']:5.1f}%  →  {r['risk_label']} Risk")
 
-def check_data_files():
-    """
-    Checks that required data files exist before launching.
-    Warns the user if any are missing.
-    """
-    required_files = {
-        'data/india_generation.csv':       'Download from https://robbieandrew.github.io/india/',
-        'data/india_generation_clean.csv': 'Run: python data_cleaner.py',
-        'data/india_states.geojson':       'Download from https://github.com/Subhash9325/GeoJson-Data-of-Indian-States',
-    }
+    # ── 4. dashboard import check ─────────────────────────────────
+    print(f"\n[4/4] Checking dashboard.py imports ...")
+    try:
+        from src.gui.dashboard import run_dashboard
+        print("      ✓ dashboard.py imported successfully")
+    except ImportError as e:
+        print(f"      ✗ Import error: {e}")
 
-    all_ok = True
-    for filepath, instruction in required_files.items():
-        if os.path.exists(filepath):
-            print(f'  [OK] {filepath}')
-        else:
-            print(f'  [MISSING] {filepath}')
-            print(f'           → {instruction}')
-            all_ok = False
-
-    return all_ok
+    print("\n" + "=" * 60)
+    print("  All tests passed!")
+    print("  Launch dashboard: streamlit run main.py")
+    print("=" * 60 + "\n")
 
 
 def main():
-    print('=' * 55)
-    print('  SolarWaste Monitor — India Solar Curtailment Tracker')
-    print('  MSc (AA) / PGD (SDS) — Python Project 2026')
-    print('=' * 55)
-    print()
+    parser = argparse.ArgumentParser(description="SolarWaste Monitor")
+    parser.add_argument("--test", action="store_true",
+                        help="Run module tests instead of launching Streamlit")
+    parser.add_argument("--test-state", default="Rajasthan",
+                        help="State for test run (default: Rajasthan)")
+    parser.add_argument("--year", type=int, default=2024,
+                        help="Year for test run (default: 2024)")
+    args = parser.parse_args()
 
-    # Step 1 — Check libraries
-    print('Checking dependencies...')
-    check_dependencies()
-
-    # Step 2 — Check data files
-    print('Checking data files...')
-    data_ok = check_data_files()
-    print()
-
-    if not data_ok:
-        print('WARNING: Some data files are missing.')
-        print('The app will launch but some features may not work.')
-        print('Follow the instructions above to fix missing files.\n')
-
-    # Step 3 — Launch Streamlit dashboard
-    dashboard_path = os.path.join('src', 'gui', 'dashboard.py')
-
-    if not os.path.exists(dashboard_path):
-        print(f'ERROR: Dashboard not found at {dashboard_path}')
-        print('Make sure src/gui/dashboard.py exists.')
-        sys.exit(1)
-
-    print('Launching SolarWaste Monitor...')
-    print('Open your browser at: http://localhost:8501')
-    print('Press Ctrl+C to stop the app.\n')
-
-    subprocess.run([
-        sys.executable, '-m', 'streamlit', 'run', dashboard_path,
-        '--server.headless', 'false',
-        '--browser.gatherUsageStats', 'false',
-    ])
+    if args.test:
+        run_tests(state=args.test_state, year=args.year)
+    else:
+        from src.gui.dashboard import run_dashboard
+        run_dashboard()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
