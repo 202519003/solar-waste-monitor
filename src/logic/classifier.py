@@ -1,171 +1,202 @@
-# classifier.py — SolarWaste Monitor
-import pandas as pd
+"""
+classifier.py  —  ML Risk Classification
+=========================================
+Responsibilities (Dhruv Soni):
+  train_model()    → KMeans k=3 clustering + Decision Tree training
+  predict_risk()   → predicts Low / Medium / High curtailment risk for a state
+  get_risk_color() → returns Streamlit status type for the risk badge
+
+Pipeline:
+  Step 1 — Collect features: curtailment_pct + avg_temperature per state
+  Step 2 — StandardScaler normalises both features
+  Step 3 — KMeans (k=3) clusters states into 3 groups (unsupervised)
+  Step 4 — Clusters are labelled Low/Medium/High by curtailment centroid
+  Step 5 — Decision Tree trained on cluster labels (supervised, for prediction)
+  Step 6 — predict_risk() uses the trained tree to classify new inputs
+"""
+
 import numpy as np
+import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import classification_report
+import joblib
+import os
+
+from src.logic.calculator import compute_all_states, _fallback_ghi
+from src.logic.fetcher import fetch_ghi
 
 
-def prepare_features(clean_df):
+# ─────────────────────────────────────────────────────────────────────────────
+# AVERAGE TEMPERATURE LOOKUP  (NASA POWER T2M annual avg, °C per state)
+# ─────────────────────────────────────────────────────────────────────────────
+
+AVG_TEMP_C = {
+    "Rajasthan": 28.5, "Gujarat": 27.2, "Karnataka": 26.5,
+    "Tamil Nadu": 28.3, "Andhra Pradesh": 27.8, "Telangana": 28.0,
+    "Maharashtra": 26.8, "Madhya Pradesh": 25.5, "Uttar Pradesh": 24.0,
+    "Punjab": 22.5, "Haryana": 23.5, "Odisha": 26.5,
+    "Chhattisgarh": 25.8, "Kerala": 27.5, "Bihar": 24.5,
+    "West Bengal": 26.0, "Assam": 23.8, "Himachal Pradesh": 12.5,
+    "Uttarakhand": 14.0, "Jharkhand": 24.5, "Goa": 27.8,
+    "Manipur": 20.0, "Meghalaya": 18.5, "Tripura": 24.5,
+    "Nagaland": 19.0, "Mizoram": 21.0, "Arunachal Pradesh": 17.0,
+    "Sikkim": 10.5,
+}
+
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "risk_model.pkl")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# MODEL TRAINING
+# ─────────────────────────────────────────────────────────────────────────────
+
+def train_model(year: int = 2024, use_api: bool = False) -> dict:
     """
-    Builds the feature table needed to train the ML model.
-    Groups cleaned CEA data by region and computes:
-        - avg_solar_mwh       : average daily solar generation (MWh/day)
-        - avg_demand_mwh      : average daily demand (MWh/day)
-        - avg_coal_mwh        : average daily coal generation (MWh/day)
-        - solar_share_pct     : solar as % of total demand
-        - coal_share_pct      : coal as % of total demand
-        - avg_curtailment_pct : risk proxy (weighted combination)
+    Trains the KMeans + Decision Tree pipeline.
 
-    Args:
-        clean_df : DataFrame — output of data_cleaner.py (india_generation_clean.csv)
+    Parameters
+    ----------
+    year    : int   Year to base training data on
+    use_api : bool  If True, fetches GHI from NASA POWER API (slower)
+                    If False, uses fallback GHI (fast, good for testing)
 
-    Returns:
-        features_df : DataFrame — one row per region with computed features
+    Returns
+    -------
+    dict with keys:
+        scaler, kmeans, tree, label_map, summary_df, feature_df
     """
-    grouped = clean_df.groupby('region').agg(
-        state           = ('state',      'first'),
-        lat             = ('lat',        'first'),
-        lon             = ('lon',        'first'),
-        avg_solar_mwh   = ('solar_mwh',  'mean'),
-        avg_demand_mwh  = ('demand_mwh', 'mean'),
-        avg_coal_mwh    = ('coal_mwh',   'mean'),
-    ).reset_index()
+    print("[classifier] Computing curtailment for all states ...")
+    summary_df = compute_all_states(year=year, use_api=use_api)
 
-    # Solar share — how much of demand is covered by solar
-    grouped['solar_share_pct'] = (
-        grouped['avg_solar_mwh'] / grouped['avg_demand_mwh'] * 100
-    ).clip(0, 100).fillna(0).round(2)
+    # Build feature matrix
+    states = summary_df["State"].tolist()
+    curtailment = summary_df["curtailment_pct"].values
+    temperature = np.array([AVG_TEMP_C.get(s, 25.0) for s in states])
 
-    # Coal share — how much demand is still covered by coal
-    grouped['coal_share_pct'] = (
-        grouped['avg_coal_mwh'] / grouped['avg_demand_mwh'] * 100
-    ).clip(0, 100).fillna(0).round(2)
+    X = np.column_stack([curtailment, temperature])
 
-    # Curtailment risk proxy:
-    # High solar share + high coal = high risk (grid cannot absorb all solar)
-    # Low solar share + low coal   = low risk
-    grouped['avg_curtailment_pct'] = (
-        grouped['solar_share_pct'] * 0.6 + grouped['coal_share_pct'] * 0.4
-    ).round(2)
-
-    return grouped
-
-
-def train_model(features_df):
-    """
-    Two-step ML pipeline:
-
-    Step 1 — KMeans (unsupervised):
-        No pre-labelled data exists. KMeans finds 3 natural clusters
-        automatically based on curtailment features.
-
-    Step 2 — Decision Tree (supervised):
-        KMeans clusters are labelled Low / Medium / High by their mean
-        curtailment value. A Decision Tree is then trained on those labels
-        so new inputs can be classified.
-
-    Args:
-        features_df : DataFrame — output of prepare_features()
-
-    Returns:
-        clf    : trained DecisionTreeClassifier
-        scaler : fitted StandardScaler (must be used to scale any new inputs)
-        df     : features_df with added columns: cluster, risk_label
-    """
-    df = features_df.copy()
-
-    feature_cols = ['avg_curtailment_pct', 'solar_share_pct', 'coal_share_pct']
-    X = df[feature_cols].values
-
-    # Scale features — KMeans is distance-based, so all features must be same scale
-    scaler   = StandardScaler()
+    # Step 1: Normalise
+    scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
-    # KMeans — find 3 clusters
+    # Step 2: KMeans clustering (k=3)
     kmeans = KMeans(n_clusters=3, random_state=42, n_init=10)
-    df['cluster'] = kmeans.fit_predict(X_scaled)
+    cluster_labels = kmeans.fit_predict(X_scaled)
 
-    # Label clusters Low / Medium / High by their mean curtailment
-    cluster_means = df.groupby('cluster')['avg_curtailment_pct'].mean().sort_values()
+    # Step 3: Label clusters by curtailment centroid
+    # Cluster with highest curtailment centroid → "High Risk"
+    centroids = kmeans.cluster_centers_
+    # centroids[:,0] is normalised curtailment — rank them
+    centroid_curtailment = [centroids[i][0] for i in range(3)]
+    order = np.argsort(centroid_curtailment)  # low → high
     label_map = {
-        cluster_means.index[0]: 'Low',
-        cluster_means.index[1]: 'Medium',
-        cluster_means.index[2]: 'High',
+        order[0]: "Low",
+        order[1]: "Medium",
+        order[2]: "High",
     }
-    df['risk_label'] = df['cluster'].map(label_map)
 
-    # Train Decision Tree on the KMeans-generated labels
-    clf = DecisionTreeClassifier(max_depth=3, random_state=42)
-    clf.fit(X_scaled, df['risk_label'])
+    risk_labels = [label_map[c] for c in cluster_labels]
 
-    print('Model trained. Region risk labels:')
-    print(df[['region', 'state', 'avg_curtailment_pct', 'risk_label']].to_string(index=False))
-    print()
-    print('Classification report:')
-    print(classification_report(df['risk_label'], clf.predict(X_scaled)))
+    # Step 4: Train Decision Tree on cluster labels
+    tree = DecisionTreeClassifier(max_depth=4, random_state=42)
+    tree.fit(X_scaled, risk_labels)
 
-    return clf, scaler, df
-
-
-def predict_risk(clf, scaler, curtailment_pct, solar_share_pct, coal_share_pct):
-    """
-    Predicts curtailment risk for a region.
-
-    Args:
-        clf             : trained DecisionTreeClassifier (from train_model)
-        scaler          : fitted StandardScaler (from train_model)
-        curtailment_pct : float — estimated curtailment percentage
-        solar_share_pct : float — solar as % of total demand
-        coal_share_pct  : float — coal as % of total demand
-
-    Returns:
-        risk : str — 'Low', 'Medium', or 'High'
-    """
-    features        = np.array([[curtailment_pct, solar_share_pct, coal_share_pct]])
-    features_scaled = scaler.transform(features)
-    risk            = clf.predict(features_scaled)
-    return risk[0]
-
-
-def get_risk_color(risk_label):
-    """
-    Returns a hex colour code for the Folium map marker.
-
-    Args:
-        risk_label : str — 'Low', 'Medium', or 'High'
-
-    Returns:
-        color : str — hex colour code
-    """
-    colors = {
-        'Low':    '#1D9E75',   # green
-        'Medium': '#EF9F27',   # amber
-        'High':   '#E24B4A',   # red
+    # Save model artifacts
+    model_bundle = {
+        "scaler":     scaler,
+        "kmeans":     kmeans,
+        "tree":       tree,
+        "label_map":  label_map,
     }
-    return colors.get(risk_label, '#888780')   # gray as fallback
+    joblib.dump(model_bundle, MODEL_PATH)
+    print(f"[classifier] Model saved to {MODEL_PATH}")
+
+    # Add risk labels to summary for map colouring
+    feature_df = pd.DataFrame({
+        "State":      states,
+        "curtailment_pct": curtailment,
+        "temperature": temperature,
+        "risk_label": risk_labels,
+    })
+
+    summary_df = summary_df.merge(feature_df[["State", "risk_label"]], on="State", how="left")
+
+    return {
+        "scaler":      scaler,
+        "kmeans":      kmeans,
+        "tree":        tree,
+        "label_map":   label_map,
+        "summary_df":  summary_df,
+        "feature_df":  feature_df,
+    }
 
 
-# ── Quick test when run directly ─────────────────────────────────────────────
-if __name__ == '__main__':
-    import os
+# ─────────────────────────────────────────────────────────────────────────────
+# PREDICTION
+# ─────────────────────────────────────────────────────────────────────────────
 
-    clean_path = 'data/india_generation_clean.csv'
+def predict_risk(curtailment_pct: float, state: str,
+                 model_bundle: dict = None) -> str:
+    """
+    Predicts curtailment risk for a given state + curtailment percentage.
 
-    if not os.path.exists(clean_path):
-        print(f'File not found: {clean_path}')
-        print('Run data_cleaner.py first to generate the cleaned CSV.')
-    else:
-        df       = pd.read_csv(clean_path, parse_dates=['date'])
-        features = prepare_features(df)
-        clf, scaler, labelled = train_model(features)
+    Parameters
+    ----------
+    curtailment_pct : float   e.g. 35.5
+    state           : str     e.g. "Rajasthan"
+    model_bundle    : dict    Output of train_model(). If None, loads from disk.
 
-        print('\nTest prediction:')
-        test_risk = predict_risk(clf, scaler,
-                                 curtailment_pct=45.0,
-                                 solar_share_pct=30.0,
-                                 coal_share_pct=60.0)
-        print(f'Input: curtailment=45%, solar_share=30%, coal_share=60%')
-        print(f'Predicted risk: {test_risk}')
-        print(f'Map colour: {get_risk_color(test_risk)}')
+    Returns
+    -------
+    str   "Low", "Medium", or "High"
+    """
+    if model_bundle is None:
+        if os.path.exists(MODEL_PATH):
+            model_bundle = joblib.load(MODEL_PATH)
+        else:
+            # Train fresh if no saved model
+            print("[classifier] No saved model found — training now ...")
+            model_bundle = train_model(use_api=False)
+
+    scaler = model_bundle["scaler"]
+    tree   = model_bundle["tree"]
+
+    temperature = AVG_TEMP_C.get(state, 25.0)
+    X = np.array([[curtailment_pct, temperature]])
+    X_scaled = scaler.transform(X)
+
+    prediction = tree.predict(X_scaled)[0]
+    return prediction
+
+
+def get_risk_color(risk_label: str) -> str:
+    """Returns Streamlit status type string for st.success / st.warning / st.error."""
+    return {
+        "Low":    "success",
+        "Medium": "warning",
+        "High":   "error",
+    }.get(risk_label, "info")
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Quick self-test
+# ─────────────────────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    print("=== Testing classifier.py (offline mode) ===\n")
+
+    bundle = train_model(year=2024, use_api=False)
+
+    print("\nRisk labels per state:")
+    print(bundle["feature_df"][["State", "curtailment_pct", "risk_label"]]
+          .sort_values("curtailment_pct", ascending=False)
+          .to_string(index=False))
+
+    print("\nPredicting risk for Rajasthan with 40% curtailment:")
+    risk = predict_risk(40.0, "Rajasthan", model_bundle=bundle)
+    print(f"  → {risk} Risk")
+
+    print("\nPredicting risk for Sikkim with 5% curtailment:")
+    risk = predict_risk(5.0, "Sikkim", model_bundle=bundle)
+    print(f"  → {risk} Risk")
