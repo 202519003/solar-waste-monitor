@@ -1,0 +1,981 @@
+State,Month,Year,Generation_MW
+Andhra Pradesh,1,2023,1074.1
+Andhra Pradesh,2,2023,1048.4
+Andhra Pradesh,3,2023,1089.1
+Andhra Pradesh,4,2023,1111.4
+Andhra Pradesh,5,2023,1067.2
+Andhra Pradesh,6,2023,950.1
+Andhra Pradesh,7,2023,747.6
+Andhra Pradesh,8,2023,967.1
+Andhra Pradesh,9,2023,872.9
+Andhra Pradesh,10,2023,1015
+Andhra Pradesh,11,2023,785.9
+Andhra Pradesh,12,2023,803.5
+Andhra Pradesh,1,2024,962.7
+Andhra Pradesh,2,2024,1144.3
+Andhra Pradesh,3,2024,1100.1
+Andhra Pradesh,4,2024,1099.4
+Andhra Pradesh,5,2024,1025.4
+Andhra Pradesh,6,2024,862.7
+Andhra Pradesh,7,2024,806.9
+Andhra Pradesh,8,2024,853.8
+Andhra Pradesh,9,2024,874.3
+Andhra Pradesh,10,2024,859.5
+Andhra Pradesh,11,2024,777
+Andhra Pradesh,12,2024,715.3
+Andhra Pradesh,1,2025,992.4
+Andhra Pradesh,2,2025,1053.3
+Andhra Pradesh,3,2025,1182.2
+Andhra Pradesh,4,2025,1148.4
+Andhra Pradesh,5,2025,957.7
+Andhra Pradesh,6,2025,957.2
+Andhra Pradesh,7,2025,828.1
+Andhra Pradesh,8,2025,847.7
+Andhra Pradesh,9,2025,797.1
+Andhra Pradesh,10,2025,792.2
+Andhra Pradesh,11,2025,869.1
+Arunachal Pradesh,1,2023,0.3
+Arunachal Pradesh,2,2023,0.2
+Arunachal Pradesh,3,2023,0.3
+Arunachal Pradesh,4,2023,0.3
+Arunachal Pradesh,5,2023,0.3
+Arunachal Pradesh,6,2023,0.3
+Arunachal Pradesh,7,2023,0.3
+Arunachal Pradesh,8,2023,0.3
+Arunachal Pradesh,9,2023,0.3
+Arunachal Pradesh,10,2023,0.3
+Arunachal Pradesh,11,2023,0.3
+Arunachal Pradesh,12,2023,0.1
+Arunachal Pradesh,1,2024,0.2
+Arunachal Pradesh,2,2024,0.1
+Arunachal Pradesh,3,2024,0.1
+Arunachal Pradesh,4,2024,0.1
+Arunachal Pradesh,5,2024,0.1
+Arunachal Pradesh,6,2024,0.1
+Arunachal Pradesh,7,2024,0.1
+Arunachal Pradesh,8,2024,0.1
+Arunachal Pradesh,9,2024,0.2
+Arunachal Pradesh,10,2024,0.2
+Arunachal Pradesh,11,2024,0.2
+Arunachal Pradesh,12,2024,0.2
+Arunachal Pradesh,1,2025,0.2
+Arunachal Pradesh,2,2025,0.2
+Arunachal Pradesh,3,2025,0.2
+Arunachal Pradesh,4,2025,0.3
+Arunachal Pradesh,5,2025,1.3
+Arunachal Pradesh,6,2025,0.2
+Arunachal Pradesh,7,2025,0.2
+Arunachal Pradesh,8,2025,0.2
+Arunachal Pradesh,9,2025,0.2
+Arunachal Pradesh,10,2025,0.2
+Arunachal Pradesh,11,2025,0.2
+Assam,1,2023,30.6
+Assam,2,2023,25.4
+Assam,3,2023,33.2
+Assam,4,2023,38.2
+Assam,5,2023,38.2
+Assam,6,2023,33.3
+Assam,7,2023,35.5
+Assam,8,2023,32.9
+Assam,9,2023,38.6
+Assam,10,2023,38.4
+Assam,11,2023,38.4
+Assam,12,2023,37.7
+Assam,1,2024,36.8
+Assam,2,2024,32.9
+Assam,3,2024,38.4
+Assam,4,2024,39.7
+Assam,5,2024,37.9
+Assam,6,2024,28.6
+Assam,7,2024,36
+Assam,8,2024,35.7
+Assam,9,2024,38.7
+Assam,10,2024,27.2
+Assam,11,2024,37.2
+Assam,12,2024,37.2
+Assam,1,2025,34.5
+Assam,2,2025,32.8
+Assam,3,2025,38.9
+Assam,4,2025,34.8
+Assam,5,2025,31.5
+Assam,6,2025,35
+Assam,7,2025,38.2
+Assam,8,2025,38.2
+Assam,9,2025,38.2
+Assam,10,2025,38.2
+Assam,11,2025,39.8
+Bihar,1,2023,17.5
+Bihar,2,2023,19.7
+Bihar,3,2023,21.9
+Bihar,4,2023,22.7
+Bihar,5,2023,22.7
+Bihar,6,2023,22.7
+Bihar,7,2023,24.4
+Bihar,8,2023,18.5
+Bihar,9,2023,14.2
+Bihar,10,2023,26.7
+Bihar,11,2023,22.5
+Bihar,12,2023,20.8
+Bihar,1,2024,22.1
+Bihar,2,2024,22.1
+Bihar,3,2024,31.6
+Bihar,4,2024,30.9
+Bihar,5,2024,33.4
+Bihar,6,2024,43.9
+Bihar,7,2024,39.9
+Bihar,8,2024,39.6
+Bihar,9,2024,39.1
+Bihar,10,2024,34.9
+Bihar,11,2024,34.3
+Bihar,12,2024,35.3
+Bihar,1,2025,36.2
+Bihar,2,2025,36.2
+Bihar,3,2025,48.8
+Bihar,4,2025,43.1
+Bihar,5,2025,44.5
+Bihar,6,2025,35.9
+Bihar,7,2025,29.1
+Bihar,8,2025,33.4
+Bihar,9,2025,43.5
+Bihar,10,2025,34.9
+Bihar,11,2025,34.2
+Chhattisgarh,1,2023,99.4
+Chhattisgarh,2,2023,108.1
+Chhattisgarh,3,2023,103.7
+Chhattisgarh,4,2023,100.1
+Chhattisgarh,5,2023,56.1
+Chhattisgarh,6,2023,89.3
+Chhattisgarh,7,2023,79.5
+Chhattisgarh,8,2023,81.2
+Chhattisgarh,9,2023,130.8
+Chhattisgarh,10,2023,129.2
+Chhattisgarh,11,2023,80.2
+Chhattisgarh,12,2023,117.9
+Chhattisgarh,1,2024,109.6
+Chhattisgarh,2,2024,154.9
+Chhattisgarh,3,2024,181.9
+Chhattisgarh,4,2024,190
+Chhattisgarh,5,2024,213.2
+Chhattisgarh,6,2024,170.5
+Chhattisgarh,7,2024,120.5
+Chhattisgarh,8,2024,136.5
+Chhattisgarh,9,2024,168.4
+Chhattisgarh,10,2024,177.5
+Chhattisgarh,11,2024,159
+Chhattisgarh,12,2024,172.1
+Chhattisgarh,1,2025,178.7
+Chhattisgarh,2,2025,214
+Chhattisgarh,3,2025,215.3
+Chhattisgarh,4,2025,227.6
+Chhattisgarh,5,2025,212.4
+Chhattisgarh,6,2025,194.4
+Chhattisgarh,7,2025,127.6
+Chhattisgarh,8,2025,130
+Chhattisgarh,9,2025,212
+Chhattisgarh,10,2025,177.2
+Chhattisgarh,11,2025,236.6
+Goa,1,2023,2.1
+Goa,2,2023,2.1
+Goa,3,2023,2.1
+Goa,4,2023,2.1
+Goa,5,2023,8.7
+Goa,6,2023,8.7
+Goa,7,2023,8.7
+Goa,8,2023,8.7
+Goa,9,2023,6.6
+Goa,10,2023,6.6
+Goa,11,2023,6.6
+Goa,12,2023,6.6
+Goa,1,2024,6.6
+Goa,2,2024,6.6
+Goa,3,2024,6.6
+Goa,4,2024,6.6
+Goa,5,2024,6.6
+Goa,6,2024,6.6
+Goa,7,2024,6.6
+Goa,8,2024,6.6
+Goa,9,2024,6.6
+Goa,10,2024,6.6
+Goa,11,2024,6.6
+Goa,12,2024,6.6
+Goa,1,2025,6.6
+Goa,2,2025,6.6
+Goa,3,2025,6.6
+Goa,4,2025,6.6
+Goa,5,2025,6.6
+Goa,6,2025,6.6
+Goa,7,2025,6.6
+Goa,8,2025,6.6
+Goa,9,2025,6.6
+Goa,10,2025,6.6
+Goa,11,2025,6.6
+Gujarat,1,2023,1396.1
+Gujarat,2,2023,1461.9
+Gujarat,3,2023,1481.8
+Gujarat,4,2023,1593.8
+Gujarat,5,2023,1984
+Gujarat,6,2023,1259.9
+Gujarat,7,2023,1082.7
+Gujarat,8,2023,1284
+Gujarat,9,2023,1396
+Gujarat,10,2023,1696.4
+Gujarat,11,2023,1417.1
+Gujarat,12,2023,1480.3
+Gujarat,1,2024,1703.1
+Gujarat,2,2024,1680.7
+Gujarat,3,2024,2129
+Gujarat,4,2024,2186.7
+Gujarat,5,2024,2434.6
+Gujarat,6,2024,2042.7
+Gujarat,7,2024,1646.6
+Gujarat,8,2024,1715.6
+Gujarat,9,2024,2070.7
+Gujarat,10,2024,2242
+Gujarat,11,2024,2267.2
+Gujarat,12,2024,2012.3
+Gujarat,1,2025,2531.7
+Gujarat,2,2025,2424.9
+Gujarat,3,2025,4010.7
+Gujarat,4,2025,3294.1
+Gujarat,5,2025,2771.3
+Gujarat,6,2025,2166.4
+Gujarat,7,2025,2067.6
+Gujarat,8,2025,2283.4
+Gujarat,9,2025,2354.8
+Gujarat,10,2025,2590.9
+Gujarat,11,2025,2839.8
+Haryana,1,2023,16.7
+Haryana,2,2023,62.8
+Haryana,3,2023,68.5
+Haryana,4,2023,79.4
+Haryana,5,2023,79.4
+Haryana,6,2023,83.4
+Haryana,7,2023,83.4
+Haryana,8,2023,83.4
+Haryana,9,2023,137.9
+Haryana,10,2023,158.4
+Haryana,11,2023,134.6
+Haryana,12,2023,134.6
+Haryana,1,2024,134.6
+Haryana,2,2024,134.6
+Haryana,3,2024,135.4
+Haryana,4,2024,165.2
+Haryana,5,2024,165.2
+Haryana,6,2024,165.2
+Haryana,7,2024,165.2
+Haryana,8,2024,165.2
+Haryana,9,2024,178.7
+Haryana,10,2024,188
+Haryana,11,2024,169.8
+Haryana,12,2024,169.8
+Haryana,1,2025,169.8
+Haryana,2,2025,169.8
+Haryana,3,2025,169.8
+Haryana,4,2025,169.8
+Haryana,5,2025,165.2
+Haryana,6,2025,165.2
+Haryana,7,2025,165.2
+Haryana,8,2025,165.2
+Haryana,9,2025,165.2
+Haryana,10,2025,165.2
+Haryana,11,2025,165.2
+Himachal Pradesh,1,2023,5.7
+Himachal Pradesh,2,2023,4.8
+Himachal Pradesh,3,2023,6.4
+Himachal Pradesh,4,2023,7.1
+Himachal Pradesh,5,2023,7.9
+Himachal Pradesh,6,2023,7.9
+Himachal Pradesh,7,2023,7.2
+Himachal Pradesh,8,2023,5.3
+Himachal Pradesh,9,2023,5.7
+Himachal Pradesh,10,2023,6.6
+Himachal Pradesh,11,2023,8
+Himachal Pradesh,12,2023,6.6
+Himachal Pradesh,1,2024,6.2
+Himachal Pradesh,2,2024,5.9
+Himachal Pradesh,3,2024,8.2
+Himachal Pradesh,4,2024,8.6
+Himachal Pradesh,5,2024,11.8
+Himachal Pradesh,6,2024,10.8
+Himachal Pradesh,7,2024,10.6
+Himachal Pradesh,8,2024,10
+Himachal Pradesh,9,2024,8.9
+Himachal Pradesh,10,2024,10.7
+Himachal Pradesh,11,2024,13.8
+Himachal Pradesh,12,2024,11.4
+Himachal Pradesh,1,2025,11.6
+Himachal Pradesh,2,2025,18
+Himachal Pradesh,3,2025,22.8
+Himachal Pradesh,4,2025,29
+Himachal Pradesh,5,2025,29.7
+Himachal Pradesh,6,2025,27.6
+Himachal Pradesh,7,2025,21.9
+Himachal Pradesh,8,2025,15.3
+Himachal Pradesh,9,2025,13.6
+Himachal Pradesh,10,2025,17.4
+Himachal Pradesh,11,2025,24.4
+Jharkhand,1,2023,2
+Jharkhand,2,2023,2
+Jharkhand,3,2023,2
+Jharkhand,4,2023,2
+Jharkhand,5,2023,2
+Jharkhand,6,2023,2
+Jharkhand,7,2023,2
+Jharkhand,8,2023,2
+Jharkhand,9,2023,2
+Jharkhand,10,2023,2
+Jharkhand,11,2023,2
+Jharkhand,12,2023,2
+Jharkhand,1,2024,2
+Jharkhand,2,2024,2
+Jharkhand,3,2024,2
+Jharkhand,4,2024,2
+Jharkhand,5,2024,2
+Jharkhand,6,2024,2
+Jharkhand,7,2024,2
+Jharkhand,8,2024,2
+Jharkhand,9,2024,2
+Jharkhand,10,2024,2
+Jharkhand,11,2024,2
+Jharkhand,12,2024,2
+Jharkhand,1,2025,2
+Jharkhand,2,2025,2
+Jharkhand,3,2025,2
+Jharkhand,4,2025,2
+Jharkhand,5,2025,2
+Jharkhand,6,2025,2
+Jharkhand,7,2025,2
+Jharkhand,8,2025,2
+Jharkhand,9,2025,2
+Jharkhand,10,2025,2
+Jharkhand,11,2025,2
+Karnataka,1,2023,1915.9
+Karnataka,2,2023,1849.5
+Karnataka,3,2023,2026.5
+Karnataka,4,2023,1952.1
+Karnataka,5,2023,1946.1
+Karnataka,6,2023,1749.1
+Karnataka,7,2023,1413.1
+Karnataka,8,2023,1792.5
+Karnataka,9,2023,1576.3
+Karnataka,10,2023,1852.8
+Karnataka,11,2023,1520.8
+Karnataka,12,2023,1640.6
+Karnataka,1,2024,1825.8
+Karnataka,2,2024,2034.6
+Karnataka,3,2024,2090.9
+Karnataka,4,2024,1995.7
+Karnataka,5,2024,1924.8
+Karnataka,6,2024,1630
+Karnataka,7,2024,1397.6
+Karnataka,8,2024,1595.5
+Karnataka,9,2024,1689.2
+Karnataka,10,2024,1948.6
+Karnataka,11,2024,1747.8
+Karnataka,12,2024,1505.6
+Karnataka,1,2025,2022.2
+Karnataka,2,2025,2075.8
+Karnataka,3,2025,2272.3
+Karnataka,4,2025,2142.4
+Karnataka,5,2025,1896.8
+Karnataka,6,2025,1654.8
+Karnataka,7,2025,1581.6
+Karnataka,8,2025,1614.4
+Karnataka,9,2025,2392.9
+Karnataka,10,2025,1769.2
+Karnataka,11,2025,1818.1
+Kerala,1,2023,209
+Kerala,2,2023,118.6
+Kerala,3,2023,134.3
+Kerala,4,2023,143.2
+Kerala,5,2023,140.3
+Kerala,6,2023,118.8
+Kerala,7,2023,103
+Kerala,8,2023,130.2
+Kerala,9,2023,134
+Kerala,10,2023,125.5
+Kerala,11,2023,133.1
+Kerala,12,2023,138.9
+Kerala,1,2024,148.2
+Kerala,2,2024,166.1
+Kerala,3,2024,178.9
+Kerala,4,2024,252.7
+Kerala,5,2024,172.5
+Kerala,6,2024,205.8
+Kerala,7,2024,132.9
+Kerala,8,2024,146.5
+Kerala,9,2024,185.8
+Kerala,10,2024,199.8
+Kerala,11,2024,186.5
+Kerala,12,2024,193.3
+Kerala,1,2025,218.4
+Kerala,2,2025,233.5
+Kerala,3,2025,249.9
+Kerala,4,2025,271.8
+Kerala,5,2025,264.4
+Kerala,6,2025,228.1
+Kerala,7,2025,203.5
+Kerala,8,2025,203.5
+Kerala,9,2025,262.3
+Kerala,10,2025,260.2
+Kerala,11,2025,266.6
+Madhya Pradesh,1,2023,417.8
+Madhya Pradesh,2,2023,488.2
+Madhya Pradesh,3,2023,460.9
+Madhya Pradesh,4,2023,454.4
+Madhya Pradesh,5,2023,507.8
+Madhya Pradesh,6,2023,421.3
+Madhya Pradesh,7,2023,352.8
+Madhya Pradesh,8,2023,350.2
+Madhya Pradesh,9,2023,348.4
+Madhya Pradesh,10,2023,473.9
+Madhya Pradesh,11,2023,391.7
+Madhya Pradesh,12,2023,444.4
+Madhya Pradesh,1,2024,401.9
+Madhya Pradesh,2,2024,549.5
+Madhya Pradesh,3,2024,894.3
+Madhya Pradesh,4,2024,669.7
+Madhya Pradesh,5,2024,761.2
+Madhya Pradesh,6,2024,690.9
+Madhya Pradesh,7,2024,541.7
+Madhya Pradesh,8,2024,580.4
+Madhya Pradesh,9,2024,608.9
+Madhya Pradesh,10,2024,902.4
+Madhya Pradesh,11,2024,900.7
+Madhya Pradesh,12,2024,877.6
+Madhya Pradesh,1,2025,1022.2
+Madhya Pradesh,2,2025,1104.4
+Madhya Pradesh,3,2025,1234
+Madhya Pradesh,4,2025,1268.5
+Madhya Pradesh,5,2025,828.4
+Madhya Pradesh,6,2025,772.9
+Madhya Pradesh,7,2025,666.5
+Madhya Pradesh,8,2025,701.1
+Madhya Pradesh,9,2025,751.7
+Madhya Pradesh,10,2025,865.2
+Madhya Pradesh,11,2025,945.5
+Maharashtra,1,2023,627.1
+Maharashtra,2,2023,684.7
+Maharashtra,3,2023,630
+Maharashtra,4,2023,697.9
+Maharashtra,5,2023,786.3
+Maharashtra,6,2023,657.2
+Maharashtra,7,2023,457.3
+Maharashtra,8,2023,589.1
+Maharashtra,9,2023,549.7
+Maharashtra,10,2023,758.3
+Maharashtra,11,2023,593.3
+Maharashtra,12,2023,647.3
+Maharashtra,1,2024,700.3
+Maharashtra,2,2024,769.2
+Maharashtra,3,2024,869.3
+Maharashtra,4,2024,831.9
+Maharashtra,5,2024,878.2
+Maharashtra,6,2024,717.3
+Maharashtra,7,2024,556.5
+Maharashtra,8,2024,769.1
+Maharashtra,9,2024,736.3
+Maharashtra,10,2024,951
+Maharashtra,11,2024,980.9
+Maharashtra,12,2024,891.7
+Maharashtra,1,2025,1080.7
+Maharashtra,2,2025,1086.6
+Maharashtra,3,2025,1249
+Maharashtra,4,2025,1159.6
+Maharashtra,5,2025,1029.9
+Maharashtra,6,2025,974.7
+Maharashtra,7,2025,851.1
+Maharashtra,8,2025,1011.5
+Maharashtra,9,2025,982.6
+Maharashtra,10,2025,1278.4
+Maharashtra,11,2025,1337
+Manipur,1,2023,0.9
+Manipur,2,2023,0.8
+Manipur,3,2023,0.9
+Manipur,4,2023,0.9
+Manipur,5,2023,0.9
+Manipur,6,2023,0.9
+Manipur,7,2023,0.9
+Manipur,8,2023,0.9
+Manipur,9,2023,0.9
+Manipur,10,2023,0.9
+Manipur,11,2023,0.8
+Manipur,12,2023,0.8
+Manipur,1,2024,0.8
+Manipur,2,2024,0.8
+Manipur,3,2024,1
+Manipur,4,2024,1
+Manipur,5,2024,1
+Manipur,6,2024,1
+Manipur,7,2024,1
+Manipur,8,2024,1
+Manipur,9,2024,1
+Manipur,10,2024,1
+Manipur,11,2024,1
+Manipur,12,2024,1
+Manipur,1,2025,1
+Manipur,2,2025,1
+Manipur,3,2025,1
+Manipur,4,2025,1
+Manipur,5,2025,1
+Manipur,6,2025,1
+Manipur,7,2025,1
+Manipur,8,2025,1
+Manipur,9,2025,1
+Manipur,10,2025,1
+Manipur,11,2025,1
+Meghalaya,1,2023,0
+Meghalaya,2,2023,0
+Meghalaya,3,2023,0
+Meghalaya,4,2023,0
+Meghalaya,5,2023,0
+Meghalaya,6,2023,0
+Meghalaya,7,2023,0
+Meghalaya,8,2023,0
+Meghalaya,9,2023,0
+Meghalaya,10,2023,0
+Meghalaya,11,2023,0
+Meghalaya,12,2023,0
+Meghalaya,1,2024,0
+Meghalaya,2,2024,0
+Meghalaya,3,2024,0
+Meghalaya,4,2024,0
+Meghalaya,5,2024,0
+Meghalaya,6,2024,0
+Meghalaya,7,2024,0
+Meghalaya,8,2024,0
+Meghalaya,9,2024,0
+Meghalaya,10,2024,0
+Meghalaya,11,2024,0
+Meghalaya,12,2024,0
+Meghalaya,1,2025,0
+Meghalaya,2,2025,0
+Meghalaya,3,2025,0
+Meghalaya,4,2025,0
+Meghalaya,5,2025,0
+Meghalaya,6,2025,0
+Meghalaya,7,2025,0
+Meghalaya,8,2025,0
+Meghalaya,9,2025,0
+Meghalaya,10,2025,0
+Meghalaya,11,2025,0
+Mizoram,1,2023,0.4
+Mizoram,2,2023,0.4
+Mizoram,3,2023,0.4
+Mizoram,4,2023,0.4
+Mizoram,5,2023,0.4
+Mizoram,6,2023,0.4
+Mizoram,7,2023,0.4
+Mizoram,8,2023,0.4
+Mizoram,9,2023,0.4
+Mizoram,10,2023,0.4
+Mizoram,11,2023,0.4
+Mizoram,12,2023,0.4
+Mizoram,1,2024,0.4
+Mizoram,2,2024,0.4
+Mizoram,3,2024,0.4
+Mizoram,4,2024,0.5
+Mizoram,5,2024,0.5
+Mizoram,6,2024,0.5
+Mizoram,7,2024,0.5
+Mizoram,8,2024,4.6
+Mizoram,9,2024,4.6
+Mizoram,10,2024,4
+Mizoram,11,2024,4
+Mizoram,12,2024,4
+Mizoram,1,2025,4
+Mizoram,2,2025,4
+Mizoram,3,2025,4
+Mizoram,4,2025,4
+Mizoram,5,2025,2.7
+Mizoram,6,2025,4.6
+Mizoram,7,2025,4
+Mizoram,8,2025,4
+Mizoram,9,2025,4
+Mizoram,10,2025,4
+Mizoram,11,2025,2.7
+Nagaland,1,2023,0
+Nagaland,2,2023,0
+Nagaland,3,2023,0
+Nagaland,4,2023,0
+Nagaland,5,2023,0
+Nagaland,6,2023,0
+Nagaland,7,2023,0
+Nagaland,8,2023,0
+Nagaland,9,2023,0
+Nagaland,10,2023,0
+Nagaland,11,2023,0
+Nagaland,12,2023,0
+Nagaland,1,2024,0
+Nagaland,2,2024,0
+Nagaland,3,2024,0
+Nagaland,4,2024,0
+Nagaland,5,2024,0
+Nagaland,6,2024,0
+Nagaland,7,2024,0
+Nagaland,8,2024,0
+Nagaland,9,2024,0
+Nagaland,10,2024,0
+Nagaland,11,2024,0
+Nagaland,12,2024,0
+Nagaland,1,2025,0
+Nagaland,2,2025,0
+Nagaland,3,2025,0
+Nagaland,4,2025,0
+Nagaland,5,2025,0
+Nagaland,6,2025,0
+Nagaland,7,2025,0
+Nagaland,8,2025,0
+Nagaland,9,2025,0
+Nagaland,10,2025,0
+Nagaland,11,2025,0
+Odisha,1,2023,86.7
+Odisha,2,2023,96.4
+Odisha,3,2023,90.6
+Odisha,4,2023,95.8
+Odisha,5,2023,102.9
+Odisha,6,2023,83.5
+Odisha,7,2023,69.8
+Odisha,8,2023,75.3
+Odisha,9,2023,66.9
+Odisha,10,2023,97.2
+Odisha,11,2023,87.1
+Odisha,12,2023,83.7
+Odisha,1,2024,86.5
+Odisha,2,2024,98.1
+Odisha,3,2024,105.5
+Odisha,4,2024,102.2
+Odisha,5,2024,112.4
+Odisha,6,2024,96.2
+Odisha,7,2024,62.5
+Odisha,8,2024,74.2
+Odisha,9,2024,79.7
+Odisha,10,2024,95
+Odisha,11,2024,92.7
+Odisha,12,2024,78.1
+Odisha,1,2025,78.1
+Odisha,2,2025,100.4
+Odisha,3,2025,121.3
+Odisha,4,2025,116.6
+Odisha,5,2025,117.3
+Odisha,6,2025,89.8
+Odisha,7,2025,75.8
+Odisha,8,2025,91.8
+Odisha,9,2025,92.9
+Odisha,10,2025,99.7
+Odisha,11,2025,112.2
+Punjab,1,2023,341.6
+Punjab,2,2023,395.8
+Punjab,3,2023,455.4
+Punjab,4,2023,470.3
+Punjab,5,2023,488.6
+Punjab,6,2023,453.7
+Punjab,7,2023,419.4
+Punjab,8,2023,448.8
+Punjab,9,2023,435.9
+Punjab,10,2023,421.7
+Punjab,11,2023,97.2
+Punjab,12,2023,102.4
+Punjab,1,2024,53.7
+Punjab,2,2024,138.7
+Punjab,3,2024,183.5
+Punjab,4,2024,177.1
+Punjab,5,2024,189.1
+Punjab,6,2024,167.6
+Punjab,7,2024,187.5
+Punjab,8,2024,166.8
+Punjab,9,2024,162.1
+Punjab,10,2024,171.6
+Punjab,11,2024,98.6
+Punjab,12,2024,111.3
+Punjab,1,2025,125.3
+Punjab,2,2025,151.7
+Punjab,3,2025,197.6
+Punjab,4,2025,194.3
+Punjab,5,2025,198.6
+Punjab,6,2025,168.2
+Punjab,7,2025,152.6
+Punjab,8,2025,141.9
+Punjab,9,2025,169.6
+Punjab,10,2025,153.8
+Punjab,11,2025,153.8
+Rajasthan,1,2023,4144.3
+Rajasthan,2,2023,4165.4
+Rajasthan,3,2023,4682.2
+Rajasthan,4,2023,4715.5
+Rajasthan,5,2023,4860.5
+Rajasthan,6,2023,4618
+Rajasthan,7,2023,4378.4
+Rajasthan,8,2023,4255.1
+Rajasthan,9,2023,4534.7
+Rajasthan,10,2023,4538.9
+Rajasthan,11,2023,3341.3
+Rajasthan,12,2023,4028.2
+Rajasthan,1,2024,3843.5
+Rajasthan,2,2024,4572.4
+Rajasthan,3,2024,5598.4
+Rajasthan,4,2024,5494.6
+Rajasthan,5,2024,6266.1
+Rajasthan,6,2024,5888.8
+Rajasthan,7,2024,5760.2
+Rajasthan,8,2024,4570
+Rajasthan,9,2024,5513.3
+Rajasthan,10,2024,5942.5
+Rajasthan,11,2024,5352.3
+Rajasthan,12,2024,5141.7
+Rajasthan,1,2025,5352.8
+Rajasthan,2,2025,5235.1
+Rajasthan,3,2025,7679.4
+Rajasthan,4,2025,7899.9
+Rajasthan,5,2025,7432.9
+Rajasthan,6,2025,6771.8
+Rajasthan,7,2025,6432.5
+Rajasthan,8,2025,6653.7
+Rajasthan,9,2025,6880.4
+Rajasthan,10,2025,6385.3
+Rajasthan,11,2025,6136.8
+Sikkim,1,2023,0
+Sikkim,2,2023,0
+Sikkim,3,2023,0
+Sikkim,4,2023,0
+Sikkim,5,2023,0
+Sikkim,6,2023,0
+Sikkim,7,2023,0
+Sikkim,8,2023,0
+Sikkim,9,2023,0
+Sikkim,10,2023,0
+Sikkim,11,2023,0
+Sikkim,12,2023,0
+Sikkim,1,2024,0
+Sikkim,2,2024,0
+Sikkim,3,2024,0
+Sikkim,4,2024,0
+Sikkim,5,2024,0
+Sikkim,6,2024,0
+Sikkim,7,2024,0
+Sikkim,8,2024,0
+Sikkim,9,2024,0
+Sikkim,10,2024,0
+Sikkim,11,2024,0
+Sikkim,12,2024,0
+Sikkim,1,2025,0
+Sikkim,2,2025,0
+Sikkim,3,2025,0
+Sikkim,4,2025,0
+Sikkim,5,2025,0
+Sikkim,6,2025,0
+Sikkim,7,2025,0
+Sikkim,8,2025,0
+Sikkim,9,2025,0
+Sikkim,10,2025,0
+Sikkim,11,2025,0
+Tamil Nadu,1,2023,1217.6
+Tamil Nadu,2,2023,1265.3
+Tamil Nadu,3,2023,1392.6
+Tamil Nadu,4,2023,1347.5
+Tamil Nadu,5,2023,1281
+Tamil Nadu,6,2023,1346
+Tamil Nadu,7,2023,1351.9
+Tamil Nadu,8,2023,1568.4
+Tamil Nadu,9,2023,1399.6
+Tamil Nadu,10,2023,1348.9
+Tamil Nadu,11,2023,1075.2
+Tamil Nadu,12,2023,1043.3
+Tamil Nadu,1,2024,1299.6
+Tamil Nadu,2,2024,1514.8
+Tamil Nadu,3,2024,1725.9
+Tamil Nadu,4,2024,1793.2
+Tamil Nadu,5,2024,1616.2
+Tamil Nadu,6,2024,1694.6
+Tamil Nadu,7,2024,1724.9
+Tamil Nadu,8,2024,1896.9
+Tamil Nadu,9,2024,2039.4
+Tamil Nadu,10,2024,1782.9
+Tamil Nadu,11,2024,1399.4
+Tamil Nadu,12,2024,1618.1
+Tamil Nadu,1,2025,1699.3
+Tamil Nadu,2,2025,2368.7
+Tamil Nadu,3,2025,2226.5
+Tamil Nadu,4,2025,2182.1
+Tamil Nadu,5,2025,2163.7
+Tamil Nadu,6,2025,2209.2
+Tamil Nadu,7,2025,2233.7
+Tamil Nadu,8,2025,2314.1
+Tamil Nadu,9,2025,2313.6
+Tamil Nadu,10,2025,2076.2
+Tamil Nadu,11,2025,1793.3
+Telangana,1,2023,869
+Telangana,2,2023,891.8
+Telangana,3,2023,937.4
+Telangana,4,2023,881.1
+Telangana,5,2023,919.6
+Telangana,6,2023,851.3
+Telangana,7,2023,580
+Telangana,8,2023,753.5
+Telangana,9,2023,644.2
+Telangana,10,2023,888.8
+Telangana,11,2023,661.8
+Telangana,12,2023,748.7
+Telangana,1,2024,798.2
+Telangana,2,2024,876
+Telangana,3,2024,958.9
+Telangana,4,2024,895.3
+Telangana,5,2024,944.8
+Telangana,6,2024,782.9
+Telangana,7,2024,578.9
+Telangana,8,2024,722.9
+Telangana,9,2024,685.4
+Telangana,10,2024,781.1
+Telangana,11,2024,790.3
+Telangana,12,2024,683.1
+Telangana,1,2025,892.9
+Telangana,2,2025,879.8
+Telangana,3,2025,1004
+Telangana,4,2025,900.4
+Telangana,5,2025,863.9
+Telangana,6,2025,776.4
+Telangana,7,2025,661.4
+Telangana,8,2025,657.8
+Telangana,9,2025,644.3
+Telangana,10,2025,737.9
+Telangana,11,2025,821.7
+Tripura,1,2023,0.8
+Tripura,2,2023,0.8
+Tripura,3,2023,0.8
+Tripura,4,2023,0.8
+Tripura,5,2023,0.8
+Tripura,6,2023,0.6
+Tripura,7,2023,0.7
+Tripura,8,2023,0.4
+Tripura,9,2023,0.4
+Tripura,10,2023,0.7
+Tripura,11,2023,0.1
+Tripura,12,2023,0.7
+Tripura,1,2024,0.6
+Tripura,2,2024,0.7
+Tripura,3,2024,0.8
+Tripura,4,2024,0.8
+Tripura,5,2024,0.7
+Tripura,6,2024,0.6
+Tripura,7,2024,0.7
+Tripura,8,2024,0.6
+Tripura,9,2024,0.6
+Tripura,10,2024,0.7
+Tripura,11,2024,0.7
+Tripura,12,2024,0.7
+Tripura,1,2025,0.7
+Tripura,2,2025,0.7
+Tripura,3,2025,0.8
+Tripura,4,2025,0.8
+Tripura,5,2025,4.5
+Tripura,6,2025,0.5
+Tripura,7,2025,0.6
+Tripura,8,2025,0.7
+Tripura,9,2025,0.8
+Tripura,10,2025,0.8
+Tripura,11,2025,0.8
+Uttar Pradesh,1,2023,345
+Uttar Pradesh,2,2023,492.5
+Uttar Pradesh,3,2023,518.7
+Uttar Pradesh,4,2023,523.4
+Uttar Pradesh,5,2023,575.8
+Uttar Pradesh,6,2023,496.4
+Uttar Pradesh,7,2023,434.8
+Uttar Pradesh,8,2023,422.7
+Uttar Pradesh,9,2023,430.3
+Uttar Pradesh,10,2023,511.4
+Uttar Pradesh,11,2023,370.9
+Uttar Pradesh,12,2023,355.1
+Uttar Pradesh,1,2024,285
+Uttar Pradesh,2,2024,472.6
+Uttar Pradesh,3,2024,637.2
+Uttar Pradesh,4,2024,647.2
+Uttar Pradesh,5,2024,662.2
+Uttar Pradesh,6,2024,586.9
+Uttar Pradesh,7,2024,511.1
+Uttar Pradesh,8,2024,523.1
+Uttar Pradesh,9,2024,501.3
+Uttar Pradesh,10,2024,584.5
+Uttar Pradesh,11,2024,488.7
+Uttar Pradesh,12,2024,494.9
+Uttar Pradesh,1,2025,491.4
+Uttar Pradesh,2,2025,621.3
+Uttar Pradesh,3,2025,784.5
+Uttar Pradesh,4,2025,734.7
+Uttar Pradesh,5,2025,717.4
+Uttar Pradesh,6,2025,599
+Uttar Pradesh,7,2025,548.6
+Uttar Pradesh,8,2025,521.3
+Uttar Pradesh,9,2025,585
+Uttar Pradesh,10,2025,572.9
+Uttar Pradesh,11,2025,588.3
+Uttarakhand,1,2023,38.4
+Uttarakhand,2,2023,38.4
+Uttarakhand,3,2023,38.4
+Uttarakhand,4,2023,38.4
+Uttarakhand,5,2023,38.4
+Uttarakhand,6,2023,38.4
+Uttarakhand,7,2023,38.4
+Uttarakhand,8,2023,38.4
+Uttarakhand,9,2023,38.4
+Uttarakhand,10,2023,38.4
+Uttarakhand,11,2023,38.4
+Uttarakhand,12,2023,38.4
+Uttarakhand,1,2024,38.4
+Uttarakhand,2,2024,38.4
+Uttarakhand,3,2024,38.4
+Uttarakhand,4,2024,38.4
+Uttarakhand,5,2024,38.4
+Uttarakhand,6,2024,38.4
+Uttarakhand,7,2024,38.4
+Uttarakhand,8,2024,38.4
+Uttarakhand,9,2024,38.4
+Uttarakhand,10,2024,38.4
+Uttarakhand,11,2024,38.4
+Uttarakhand,12,2024,38.4
+Uttarakhand,1,2025,38.4
+Uttarakhand,2,2025,38.4
+Uttarakhand,3,2025,38.4
+Uttarakhand,4,2025,38.4
+Uttarakhand,5,2025,38.4
+Uttarakhand,6,2025,38.4
+Uttarakhand,7,2025,38.4
+Uttarakhand,8,2025,38.4
+Uttarakhand,9,2025,38.4
+Uttarakhand,10,2025,38.4
+Uttarakhand,11,2025,38.4
+West Bengal,1,2023,13.2
+West Bengal,2,2023,15.4
+West Bengal,3,2023,17.3
+West Bengal,4,2023,18.2
+West Bengal,5,2023,18.5
+West Bengal,6,2023,18.5
+West Bengal,7,2023,14.4
+West Bengal,8,2023,12
+West Bengal,9,2023,12
+West Bengal,10,2023,25.8
+West Bengal,11,2023,24
+West Bengal,12,2023,22.3
+West Bengal,1,2024,13.2
+West Bengal,2,2024,25
+West Bengal,3,2024,29.9
+West Bengal,4,2024,32.9
+West Bengal,5,2024,33.3
+West Bengal,6,2024,31.5
+West Bengal,7,2024,25.2
+West Bengal,8,2024,21.5
+West Bengal,9,2024,34.5
+West Bengal,10,2024,39.5
+West Bengal,11,2024,40.6
+West Bengal,12,2024,38.6
+West Bengal,1,2025,42.4
+West Bengal,2,2025,45.6
+West Bengal,3,2025,60
+West Bengal,4,2025,60.5
+West Bengal,5,2025,56
+West Bengal,6,2025,44.7
+West Bengal,7,2025,38
+West Bengal,8,2025,40.3
+West Bengal,9,2025,44.7
+West Bengal,10,2025,44.8
+West Bengal,11,2025,49.1
