@@ -45,6 +45,7 @@ def prepare_features(clean_df):
 
     # Curtailment risk proxy:
     # High solar share + high coal = high risk (grid cannot absorb all solar)
+    # Low solar share + low coal   = low risk
     grouped['avg_curtailment_pct'] = (
         grouped['solar_share_pct'] * 0.6 + grouped['coal_share_pct'] * 0.4
     ).round(2)
@@ -78,7 +79,7 @@ def train_model(features_df):
     feature_cols = ['avg_curtailment_pct', 'solar_share_pct', 'coal_share_pct']
     X = df[feature_cols].values
 
-    # Scale features — KMeans is distance-based so all features must be same scale
+    # Scale features — KMeans is distance-based, so all features must be same scale
     scaler   = StandardScaler()
     X_scaled = scaler.fit_transform(X)
 
